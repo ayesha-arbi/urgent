@@ -1,27 +1,27 @@
 // ============================================================
-// components/layout/Sidebar.tsx
-// Left sidebar with nav links, branding, and recent sessions
+// Sidebar Component
 // ============================================================
+
+'use client';
 
 import React from 'react';
 import {
-  LayoutDashboard, MapPin, Info, Sprout, Zap,
-  Clock, ChevronRight, Globe, Leaf,
+  LayoutDashboard, MapPin, Info, Leaf,
+  Clock, ChevronRight, Globe,
 } from 'lucide-react';
-import type { Page, AnalysisSession } from '../../types';
-import { formatRelativeTime, scoreColor } from '../../lib/utils';
+import type { Page, AnalysisSession } from '@/types';
+import { formatRelativeTime, scoreColor } from '@/lib/utils';
 
 interface NavItem {
   id: Page;
   label: string;
   Icon: React.ElementType;
-  badge?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard',     Icon: LayoutDashboard },
-  { id: 'analyze',   label: 'Analyse Land',  Icon: MapPin           },
-  { id: 'about',     label: 'About',         Icon: Info             },
+  { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { id: 'analyze', label: 'Analyse Land', Icon: MapPin },
+  { id: 'about', label: 'About', Icon: Info },
 ];
 
 interface SidebarProps {
@@ -56,19 +56,39 @@ export function Sidebar({ currentPage, recentSessions, onNavigate, onSessionClic
             <Leaf size={18} color="#052e16" strokeWidth={2.5} />
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--z-font-display)', fontWeight: 700, fontSize: 16, color: 'var(--z-text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <div style={{
+              fontFamily: 'var(--z-font-display)',
+              fontWeight: 700,
+              fontSize: 16,
+              color: 'var(--z-text-primary)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}>
               Zameendar<span style={{ color: 'var(--z-green-400)' }}>.ai</span>
             </div>
-            <div style={{ fontFamily: 'var(--z-font-mono)', fontSize: 9, color: 'var(--z-text-faint)', letterSpacing: '0.1em', marginTop: 1 }}>
+            <div style={{
+              fontFamily: 'var(--z-font-mono)',
+              fontSize: 9,
+              color: 'var(--z-text-faint)',
+              letterSpacing: '0.1em',
+              marginTop: 1,
+            }}>
               زمیندار · LAND AI
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Navigation */}
+      {/* Navigation */}
       <nav style={{ padding: '10px 10px 0' }}>
-        <div style={{ fontFamily: 'var(--z-font-mono)', fontSize: 9, color: 'var(--z-text-faint)', letterSpacing: '0.1em', padding: '6px 8px', marginBottom: 4 }}>
+        <div style={{
+          fontFamily: 'var(--z-font-mono)',
+          fontSize: 9,
+          color: 'var(--z-text-faint)',
+          letterSpacing: '0.1em',
+          padding: '6px 8px',
+          marginBottom: 4,
+        }}>
           NAVIGATION
         </div>
         {NAV_ITEMS.map(({ id, label, Icon }) => {
@@ -78,16 +98,35 @@ export function Sidebar({ currentPage, recentSessions, onNavigate, onSessionClic
               key={id}
               onClick={() => onNavigate(id)}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                padding: '9px 10px', borderRadius: 'var(--z-radius-md)',
-                border: 'none', background: active ? 'rgba(74,222,128,0.1)' : 'transparent',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '9px 10px',
+                borderRadius: 'var(--z-radius-md)',
+                border: 'none',
+                background: active ? 'rgba(74,222,128,0.1)' : 'transparent',
                 color: active ? 'var(--z-green-400)' : 'var(--z-text-secondary)',
-                cursor: 'pointer', fontFamily: 'var(--z-font-body)', fontSize: 13, fontWeight: active ? 600 : 400,
-                marginBottom: 2, transition: 'all var(--z-duration-fast) var(--z-ease)',
+                cursor: 'pointer',
+                fontFamily: 'var(--z-font-body)',
+                fontSize: 13,
+                fontWeight: active ? 600 : 400,
+                marginBottom: 2,
                 textAlign: 'left',
+                transition: 'all var(--z-duration-fast)',
               }}
-              onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--z-bg-hover)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--z-text-primary)'; } }}
-              onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--z-text-secondary)'; } }}
+              onMouseEnter={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--z-bg-hover)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--z-text-primary)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--z-text-secondary)';
+                }
+              }}
             >
               <Icon size={16} strokeWidth={active ? 2.5 : 1.8} />
               {label}
@@ -97,10 +136,25 @@ export function Sidebar({ currentPage, recentSessions, onNavigate, onSessionClic
         })}
       </nav>
 
-      {/* Recent Analyses */}
+      {/* Recent Sessions */}
       {recentSessions.length > 0 && (
-        <div style={{ padding: '16px 10px 0', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 8px 8px', fontFamily: 'var(--z-font-mono)', fontSize: 9, color: 'var(--z-text-faint)', letterSpacing: '0.1em' }}>
+        <div style={{
+          padding: '16px 10px 0',
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '0 8px 8px',
+            fontFamily: 'var(--z-font-mono)',
+            fontSize: 9,
+            color: 'var(--z-text-faint)',
+            letterSpacing: '0.1em',
+          }}>
             <Clock size={10} />
             RECENT ANALYSES
           </div>
@@ -112,21 +166,32 @@ export function Sidebar({ currentPage, recentSessions, onNavigate, onSessionClic
                   key={session.id}
                   onClick={() => onSessionClick(session)}
                   style={{
-                    width: '100%', padding: '8px 10px', borderRadius: 'var(--z-radius-md)',
-                    border: 'none', background: 'transparent',
-                    cursor: 'pointer', textAlign: 'left', marginBottom: 2,
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: 'var(--z-radius-md)',
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    marginBottom: 2,
                     transition: 'background var(--z-duration-fast)',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--z-bg-hover)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--z-bg-hover)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--z-text-primary)' }}>
                       {session.location.placeName}
                     </span>
                     <span style={{
-                      fontSize: 10, fontFamily: 'var(--z-font-mono)',
-                      color: scoreColor(topScore.score), fontWeight: 600,
+                      fontSize: 10,
+                      fontFamily: 'var(--z-font-mono)',
+                      color: scoreColor(topScore.score),
+                      fontWeight: 600,
                     }}>
                       {topScore.score}
                     </span>
@@ -148,7 +213,7 @@ export function Sidebar({ currentPage, recentSessions, onNavigate, onSessionClic
       <div style={{ padding: '12px 18px', borderTop: '1px solid var(--z-border-subtle)', marginTop: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--z-text-faint)' }}>
           <Globe size={10} />
-          <span style={{ fontFamily: 'var(--z-font-mono)', letterSpacing: '0.05em' }}>v1.0 · Hackathon MVP</span>
+          <span style={{ fontFamily: 'var(--z-font-mono)', letterSpacing: '0.05em' }}>v1.0 · MVP</span>
         </div>
       </div>
     </aside>

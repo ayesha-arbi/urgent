@@ -1,7 +1,6 @@
 // ============================================================
-// shared/types.ts
-// Types shared between NestJS backend and Next.js frontend.
-// In a monorepo, both apps would import from this file.
+// Shared types for Zameendar.ai
+// Used by both Next.js API routes and frontend components
 // ============================================================
 
 export interface LatLng {
@@ -98,4 +97,19 @@ export interface ApiError {
   statusCode: number;
   message: string;
   timestamp: string;
+}
+
+// Frontend state
+export type Page = 'dashboard' | 'analyze' | 'about';
+export type AnalyzePhase = 'idle' | 'loading_data' | 'loading_ai' | 'success' | 'error';
+
+export interface AppState {
+  currentPage: Page;
+  analyzePhase: AnalyzePhase;
+  selectedLocation: { latLng: LatLng; placeName: string; country: string; region: string } | null;
+  envPayload: EnvPayload | null;
+  currentResult: SuitabilityResult | null;
+  expandedCategory: SuitabilityCategory | null;
+  sessions: AnalysisSession[];
+  error: string | null;
 }

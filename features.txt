@@ -1,0 +1,25 @@
+Must-Have (Build These First):
+
+Interactive World Map
+Leaflet.js + OpenStreetMap tiles.
+Click any location or simple search (lat/long fallback).
+Default view: global with easy zoom to Pakistan/Sindh.
+
+Real-Time Data Fetch (Dynamic factors — not restricted)
+Temperature, precipitation (Open-Meteo Weather API).
+Air quality (AQI/PM2.5 via Open-Meteo Air Quality API).
+Population density (pre-loaded lightweight WorldPop-derived JSON lookup).
+Additional factors (elevation, basic proxies) if returned quickly.
+Graceful fallback to cached examples for 8–10 global locations.
+
+AI Suitability Scoring
+Scores 0–100 for exactly four categories: Agriculture, Housing, Industry, Renewables.
+LLM (via Vercel AI SDK + Grok/Gemini/Claude) dynamically weighs available factors.
+
+Dashboard & Visuals
+Radar/spider chart comparing the four scores.
+Color-coded map pin/markers (green = high suitability).
+“Why this score?” explanation cards for each category.
+
+Generative AI Action Plan
+One-click button that outputs short, practical recommendations (e.g., “High agriculture potential — consider drought-resistant crops” or “Strong solar suitability due to low population and clear conditions”).
