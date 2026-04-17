@@ -61,7 +61,7 @@ Return practical actions and key factors for each.
 
   try {
     const result = await generateObject({
-      model: google('gemini-2.0-flash-exp', { structuredOutputs: true }),
+      model: google('gemini-3-flash-preview', { structuredOutputs: true }),
       schema: suitabilitySchema,
       prompt,
       temperature: 0.3,
