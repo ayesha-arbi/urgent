@@ -13,13 +13,28 @@ AI-powered land suitability scoring for Agriculture, Housing, Industry, and Rene
 ## Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
-- **AI**: Vercel AI SDK with Google Gemini (free tier)
+- **AI**: Multi-agent system using Groq (Llama 3.3 70B) - fast, free tier
 - **Maps**: Google Maps via @react-google-maps/api
 - **Data Sources**:
   - Open-Meteo (weather, air quality) - free, no API key
   - Nominatim/OSM (geocoding) - free, no API key
   - Open-Elevation (elevation) - free, no API key
-  - Google Gemini (AI analysis) - free tier available
+
+## Multi-Agent AI System
+
+The `/api/analyze` endpoint runs 4 specialized AI agents in parallel:
+
+| Agent | Role |
+|-------|------|
+| **Scoring Agent** | Assigns 0-100 scores to each category with extreme temperature handling |
+| **Explanation Agent** | Generates one-sentence reasons for each score |
+| **Recommendation Agent** | Provides 3 practical, actionable recommendations |
+| **Summary Agent** | Creates a 2-sentence overview of land conditions |
+
+**Critical Logic**: The system enforces strict scoring rules for extreme conditions:
+- Antarctica-like temps (< -30°C): All scores capped at 5-10
+- Extreme cold/heat (< -10°C or > 45°C): All scores capped at 25
+- This prevents unrealistic recommendations for uninhabitable regions
 
 ## Getting Started
 
@@ -34,9 +49,9 @@ npm install
 Copy `.env.example` to `.env.local`:
 
 ```bash
-# AI - Google Gemini (free tier)
-# Get API key: https://aistudio.google.com/apikey
-GOOGLE_GENERATIVE_AI_API_KEY=
+# AI - Groq (Llama 3.3 70B for multi-agent analysis)
+# Get free API key: https://console.groq.com/keys
+GROQ_API_KEY=
 
 # Google Maps for interactive map
 # Get API key: https://console.cloud.google.com/apis/credentials
@@ -56,10 +71,12 @@ Open [http://localhost:3000](http://localhost:3000)
 
 1. Push to GitHub
 2. Import project in [Vercel](https://vercel.com)
-3. Add both environment variables:
-   - `GOOGLE_GENERATIVE_AI_API_KEY`
-   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+3. Add environment variables:
+   - `GROQ_API_KEY` - from https://console.groq.com/keys
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` - from Google Cloud Console
 4. Deploy
+
+**Note**: Groq is recommended over Gemini because it's faster and has a generous free tier.
 
 ## API Endpoints
 
