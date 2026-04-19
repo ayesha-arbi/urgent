@@ -1,7 +1,6 @@
 'use client';
 import React, { useRef } from 'react';
 import * as htmlToImage from 'html-to-image';
-import { Download, Share2, Copy, CheckCircle2, Sparkles, Globe, TrendingUp, MapPin } from 'lucide-react';
 import type { LandStory } from '@/types';
 import { Download, Share2, CheckCircle2, Sparkles, Globe, TrendingUp, MapPin } from 'lucide-react';
 import { scoreColor } from '@/lib/utils';
