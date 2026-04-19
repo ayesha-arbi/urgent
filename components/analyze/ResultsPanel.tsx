@@ -301,66 +301,6 @@ function ScoreCard({ score, expanded, onToggle }: {
           }}>
             {score.explanation}
           </p>
-
-          {/* 2-col layout: factors + actions */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {/* key factors */}
-            <div style={{
-              padding: '12px',
-              background: 'var(--z-bg-surface)',
-              border: '1px solid var(--z-border-subtle)',
-              borderRadius: 10,
-            }}>
-              <div style={{
-                fontSize: 9, fontWeight: 700, color: 'var(--z-text-muted)',
-                letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                <Layers size={10} />
-                Key Factors
-              </div>
-              {score.keyFactors.map((f, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 6,
-                  fontSize: 11, color: 'var(--z-text-secondary)',
-                  marginBottom: 6, lineHeight: 1.5,
-                }}>
-                  <div style={{
-                    width: 4, height: 4, borderRadius: '50%',
-                    background: score.color, flexShrink: 0, marginTop: 5,
-                  }} />
-                  {f}
-                </div>
-              ))}
-            </div>
-
-            {/* actions */}
-            <div style={{
-              padding: '12px',
-              background: 'var(--z-bg-surface)',
-              border: '1px solid var(--z-border-subtle)',
-              borderRadius: 10,
-            }}>
-              <div style={{
-                fontSize: 9, fontWeight: 700, color: 'var(--z-text-muted)',
-                letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                <CheckCircle2 size={10} />
-                Actions
-              </div>
-              {score.actions.map((a, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 6,
-                  fontSize: 11, color: 'var(--z-text-secondary)',
-                  marginBottom: 6, lineHeight: 1.5,
-                }}>
-                  <CheckCircle2 size={11} color={score.color} style={{ flexShrink: 0, marginTop: 1 }} />
-                  {a}
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
     </div>
@@ -647,6 +587,95 @@ export function ResultsPanel({
           onToggle={() => onToggleCategory(s.label)}
         />
       ))}
+
+      {/* Overall Factors & Actions */}
+      <div style={{
+        marginTop: 16, marginBottom: 16,
+        display: 'flex', flexDirection: 'column', gap: 12,
+      }}>
+        {/* Key Factors */}
+        <div style={{
+          padding: '14px',
+          background: 'var(--z-bg-card)',
+          border: '1px solid var(--z-border-subtle)',
+          borderRadius: 12,
+        }}>
+          <div style={{
+            fontSize: 9, fontWeight: 700, color: 'var(--z-text-muted)',
+            letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <Layers size={11} />
+            Key Environmental & Geographic Factors
+          </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 10,
+          }}>
+            {result.overallFactors.map((f, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '8px 10px',
+                background: 'var(--z-bg-surface)',
+                borderRadius: 8,
+                border: '1px solid var(--z-border-subtle)',
+              }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #4ade80, #22c55e)',
+                  flexShrink: 0, marginTop: 4,
+                  boxShadow: '0 0 8px rgba(74, 222, 128, 0.4)',
+                }} />
+                <span style={{
+                  fontSize: 11, color: 'var(--z-text-secondary)',
+                  lineHeight: 1.5, fontWeight: 500,
+                }}>
+                  {f}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recommended Actions */}
+        <div style={{
+          padding: '14px',
+          background: 'var(--z-bg-card)',
+          border: '1px solid var(--z-border-subtle)',
+          borderRadius: 12,
+        }}>
+          <div style={{
+            fontSize: 9, fontWeight: 700, color: 'var(--z-text-muted)',
+            letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <CheckCircle2 size={11} />
+            Recommended Actions for Sustainable Development
+          </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 10,
+          }}>
+            {result.overallActions.map((a, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '10px 12px',
+                background: 'linear-gradient(135deg, rgba(74,222,128,0.04), rgba(34,197,94,0.02))',
+                borderRadius: 8,
+                border: '1px solid rgba(74, 222, 128, 0.15)',
+              }}>
+                <CheckCircle2 size={13} color="#4ade80" style={{ flexShrink: 0, marginTop: 1 }} />
+                <span style={{
+                  fontSize: 11, color: 'var(--z-text-secondary)',
+                  lineHeight: 1.6, fontWeight: 500,
+                }}>
+                  {a}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* AI Insight */}
       <div style={{

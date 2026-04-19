@@ -13,6 +13,7 @@ export interface LocationData {
   placeName: string;
   country: string;
   region: string;
+  isWater?: boolean;
 }
 
 export interface WeatherData {
@@ -52,13 +53,13 @@ export interface CategoryScore {
   color: string;
   summary: string;
   explanation: string;
-  actions: string[];
-  keyFactors: string[];
 }
 
 export interface SuitabilityResult {
   location: LocationData;
   scores: CategoryScore[];
+  overallFactors: string[];
+  overallActions: string[];
   overallInsight: string;
   topUse: SuitabilityCategory;
   disclaimer: string;
@@ -112,4 +113,21 @@ export interface AppState {
   expandedCategory: SuitabilityCategory | null;
   sessions: AnalysisSession[];
   error: string | null;
+}
+
+// Land Story - Shareable Visual Report
+export interface LandStory {
+  location: LocationData;
+  sustainabilityScore: number; // 0-100 overall score
+  scores: CategoryScore[];
+  narrative: string; // 2-3 sentence AI-generated story
+  globalInsights: string[]; // 3-4 bullets tied to global problems
+  recommendations: string[]; // 2-3 actionable recommendations
+  generatedAt: string;
+  shareUrl?: string;
+}
+
+export interface LandStoryResponse {
+  success: boolean;
+  data: LandStory;
 }

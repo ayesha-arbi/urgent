@@ -20,20 +20,26 @@ async function safeFetch(url: string, init?: RequestInit): Promise<any> {
   }
 }
 
-export async function reverseGeocode(lat: number, lng: number): Promise<{ placeName: string; country: string; region: string }> {
+export async function reverseGeocode(lat: number, lng: number): Promise<{ placeName: string; country: string; region: string; isWater: boolean }> {
   try {
     const data = await safeFetch(
       `${NOMINATIM_URL}/reverse?format=json&lat=${lat}&lon=${lng}`,
       { headers: { 'Accept-Language': 'en', 'User-Agent': 'Zameendar.ai/1.0' } }
     );
     const a = data.address ?? {};
+    const waterIndicators = ['ocean', 'sea', 'bay', 'strait', 'gulf', 'water', 'lagoon', 'channel', 'bight'];
+    const placeName = a.city || a.town || a.village || a.county || a.state || data.name || 'Selected Location';
+    const placeLower = placeName.toLowerCase();
+    const isWater = waterIndicators.some(w => placeLower.includes(w)) ||
+                    a.water || a.ocean || a.sea || a.bay || !a.country;
     return {
-      placeName: a.city || a.town || a.village || a.county || a.state || 'Selected Location',
+      placeName,
       country: a.country ?? '',
       region: a.state ?? a.county ?? '',
+      isWater,
     };
   } catch {
-    return { placeName: 'Selected Location', country: '', region: '' };
+    return { placeName: 'Selected Location', country: '', region: '', isWater: false };
   }
 }
 

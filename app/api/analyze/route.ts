@@ -8,12 +8,20 @@ import { createGroq } from '@ai-sdk/groq';
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWeather, fetchAirQuality } from '@/lib/services/weatherService';
 import { fetchGeoData, reverseGeocode } from '@/lib/services/geoService';
+import type { GeoData } from '@/types';
 
 const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
 const groqModel = groq('llama-3.3-70b-versatile');
 
 // In-memory session store
 const sessions: any[] = [];
+
+// Robust JSON extraction from AI responses
+function extractJson(text: string): string {
+  let cleaned = text.replace(/```(?:json|[a-z]*)?\n?/g, '');
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  return jsonMatch ? jsonMatch[0].trim() : cleaned.trim();
+}
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -22,7 +30,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { lat, lng, locationName } = body;
 
-    // Validate coordinates
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return NextResponse.json(
         { error: 'Invalid coordinates. Lat: -90 to 90, Lng: -180 to 180' },
@@ -38,18 +45,36 @@ export async function POST(req: NextRequest) {
       reverseGeocode(lat, lng),
     ]);
 
+    // Water body detection - reject ocean/sea locations
+    if (location.isWater) {
+      return NextResponse.json(
+        { error: 'Cannot analyze water locations. Please select land coordinates.', success: false },
+        { status: 400 }
+      );
+    }
+
+    const isUnderwater = geo.elevation < 0;
+    const isNoMansLand = geo.populationDensity < 1 && !location.country;
+
+    if (isUnderwater && isNoMansLand) {
+      return NextResponse.json(
+        { error: 'Cannot analyze water locations. Please select land coordinates.', success: false },
+        { status: 400 }
+      );
+    }
+
     const temperature = weather.temperature;
     const isExtremeCold = temperature < -10;
     const isExtremeHeat = temperature > 45;
     const isVeryExtreme = temperature < -30 || temperature > 50;
 
-    // Build rich context for agents
+    // Build rich context - THIS IS THE DATA ALL AGENTS NEED
     const context = `
 Location: ${locationName || location.placeName} (${lat.toFixed(4)}, ${lng.toFixed(4)})
 Country: ${location.country || 'Unknown'}
 
 ENVIRONMENTAL CONDITIONS:
-- Temperature: ${weather.temperature}°C ${isVeryExtreme ? '(EXTREME - life-threatening)' : isExtremeCold ? '(very cold)' : isExtremeHeat ? '(very hot)' : '(moderate)'}
+- Temperature: ${weather.temperature}°C ${isVeryExtreme ? '(EXTREME - life-threatening)' : isExtremeCold ? '(very cold)' : isExtremeHeat ? '(very hot)' : ''}
 - Precipitation: ${weather.precipitation}mm/day ${weather.precipitation < 0.5 ? '(very dry)' : weather.precipitation > 5 ? '(wet)' : ''}
 - Wind Speed: ${weather.windSpeed}km/h ${weather.windSpeed > 20 ? '(windy)' : ''}
 - Humidity: ${weather.humidity}%
@@ -67,61 +92,106 @@ GEOGRAPHIC:
 - Urban Proximity: ${geo.urbanProximity}/100
 `;
 
-    // CRITICAL: System prompt with scoring rules
-    const systemPrompt = `You are an expert land suitability analyst. Score 0-100 for each category.
+    // Run 5 specialized agents in parallel - ALL receive the context
+    const [scoreResult, whyResult, recResult, summaryResult, factorsResult] = await Promise.all([
 
-CRITICAL SCORING RULES:
-1. EXTREME TEMPERATURES: If temp < -10°C or > 45°C, ALL scores must be below 25
-2. VERY EXTREME: If temp < -30°C (Antarctica) or > 50°C (Death Valley), ALL scores below 15
-3. Antarctica-like conditions (-40°C or colder) = all scores must be 5 or less
-4. Housing requires survivable conditions - score near 0 for extreme cold/heat
-5. Agriculture needs moderate temp (5-40°C), water, decent soil
-6. Industry is more tolerant but needs worker access
-7. Renewables can work in harsh conditions if UV/wind are good
-
-Return ONLY valid JSON. No markdown, no explanation.`;
-
-    // Run 4 specialized agents in parallel
-    const [scoreResult, whyResult, recResult, summaryResult] = await Promise.all([
+      // Agent 1: Scoring
       generateText({
         model: groqModel,
-        system: systemPrompt,
-        prompt: `Given the land conditions above, return ONLY valid JSON:
-{"agriculture":NUMBER,"housing":NUMBER,"industry":NUMBER,"renewables":NUMBER}
-Each score 0-100. Consider temperature extremes critically.`,
+        prompt: `You are an expert land suitability analyst. Analyze these conditions and score each category 0-100.
+
+${context}
+
+SCORING GUIDELINES:
+- Agriculture: Needs moderate temp (10-35°C ideal), adequate rain (>1mm), good humidity (40-80%). Hot dry areas can still score 40-60 for heat-tolerant crops. Cold/frozen = low.
+- Housing: Needs livable temp (15-30°C ideal), good air quality (AQI <100), access to population centers. Extreme cold/heat = low.
+- Industry: Most tolerant. Needs workforce access (population density >50), infrastructure proximity. Can score 50-70 in moderate conditions even with suboptimal weather.
+- Renewables: Solar needs high UV (>6) + low clouds (<40%). Wind needs speed >15km/h. Can score high even in harsh climates if sun/wind are good.
+- Normal moderate climates (20-30°C, some rain, AQI <80) should score Agriculture 60-80, Housing 60-75, Industry 50-65, Renewables 40-70 depending on sun/wind.
+
+CRITICAL: If temp < -10°C or > 45°C, cap ALL scores at 25. If temp < -30°C, cap at 10.
+
+Return ONLY valid JSON, no markdown:
+{"agriculture":NUMBER,"housing":NUMBER,"industry":NUMBER,"renewables":NUMBER}`,
       }),
 
+      // Agent 2: Explanations
       generateText({
         model: groqModel,
-        system: 'You explain land scores in one short sentence each.',
-        prompt: `Given the conditions, write ONE short reason (max 12 words) for each category's score:
+        prompt: `You explain land suitability scores. Given these conditions:
+
+${context}
+
+Write ONE short reason (max 12 words) for each category's suitability at this location.
+Return ONLY valid JSON, no markdown:
 {"agriculture":"reason","housing":"reason","industry":"reason","renewables":"reason"}`,
       }),
 
+      // Agent 3: Recommendations
       generateText({
         model: groqModel,
-        system: 'You give practical land development recommendations.',
-        prompt: `Given the conditions${isVeryExtreme ? ' (EXTREME - likely uninhabitable)' : ''}, give exactly 3 short, practical recommendations.
-Return: {"recommendations":["rec1","rec2","rec3"]}`,
+        prompt: `You give practical land development recommendations. Given these conditions:
+
+${context}
+
+${isVeryExtreme ? 'NOTE: This location has EXTREME conditions. Recommend specialized approaches.' : ''}
+
+Give exactly 3 short, practical action recommendations for this land.
+Return ONLY valid JSON, no markdown:
+{"recommendations":["rec1","rec2","rec3"]}`,
       }),
 
+      // Agent 4: Summary
       generateText({
         model: groqModel,
-        system: 'You summarize land data clearly.',
-        prompt: `Summarize these land factors in 2 clear sentences: ${context}`,
+        prompt: `Summarize these land factors in 2 clear sentences:
+
+${context}`,
+      }),
+
+      // Agent 5: Overall Factors & Actions
+      generateText({
+        model: groqModel,
+        prompt: `You are a land development strategist. Analyze these conditions and provide comprehensive factors and actionable recommendations.
+
+${context}
+
+KEY FACTORS: Identify 5-6 critical environmental and geographic factors that impact land development. Consider:
+- Climate conditions (temperature extremes, precipitation patterns)
+- Environmental hazards (air quality, UV exposure, extreme weather risk)
+- Geographic constraints (elevation, remoteness, population access)
+- Resource availability (solar potential, wind potential, water access)
+- Agricultural potential (growing conditions, soil implications)
+- Infrastructure challenges (access to services, construction feasibility)
+
+RECOMMENDED ACTIONS: Provide 4-5 practical, actionable recommendations tied to global challenges:
+- Climate change resilience (adaptation strategies, sustainable practices)
+- Food security (agricultural optimization, crop selection, water management)
+- Sustainable development (renewable energy, eco-friendly construction)
+- Risk mitigation (disaster preparedness, environmental protection)
+- Economic viability (cost-effective approaches, resource maximization)
+
+Make actions specific, practical, and globally relevant - not generic advice.
+
+Return ONLY valid JSON, no markdown:
+{"factors":["factor1","factor2","factor3","factor4","factor5"],"actions":["action1","action2","action3","action4","action5"]}`,
       }),
     ]);
 
-    // Parse scores with validation
+    // Parse scores
     let rawScores = { agriculture: 50, housing: 50, industry: 50, renewables: 50 };
     try {
-      const parsed = JSON.parse(scoreResult.text.replace(/```json|```/g, '').trim());
+      const parsed = JSON.parse(extractJson(scoreResult.text));
       rawScores = { ...rawScores, ...parsed };
+      // Clamp all scores to 0-100
+      for (const key of Object.keys(rawScores) as (keyof typeof rawScores)[]) {
+        rawScores[key] = Math.max(0, Math.min(100, Math.round(rawScores[key])));
+      }
     } catch (e) {
-      console.error('Score parse error:', e);
+      console.error('Score parse error:', e, 'Raw:', scoreResult.text);
     }
 
-    // Enforce extreme temperature constraints (belt-and-suspenders)
+    // Enforce extreme temperature constraints
     if (isVeryExtreme) {
       rawScores.agriculture = Math.min(rawScores.agriculture, 10);
       rawScores.housing = Math.min(rawScores.housing, 10);
@@ -137,42 +207,49 @@ Return: {"recommendations":["rec1","rec2","rec3"]}`,
     }
 
     // Parse explanations
-    let explanations = { agriculture: '', housing: '', industry: '', renewables: '' };
+    let explanations: Record<string, string> = { agriculture: '', housing: '', industry: '', renewables: '' };
     try {
-      explanations = JSON.parse(whyResult.text.replace(/```json|```/g, '').trim());
+      explanations = JSON.parse(extractJson(whyResult.text));
     } catch (e) {
-      console.error('Explanation parse error:', e);
+      console.error('Explanation parse error:', e, 'Raw:', whyResult.text);
     }
 
     // Parse recommendations
     let recommendations: string[] = ['Conduct detailed site survey', 'Consult local experts', 'Review regulatory requirements'];
     try {
-      const parsed = JSON.parse(recResult.text.replace(/```json|```/g, '').trim());
-      recommendations = parsed.recommendations || recommendations;
+      const parsed = JSON.parse(extractJson(recResult.text));
+      if (Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
+        recommendations = parsed.recommendations;
+      }
     } catch (e) {
-      console.error('Recommendation parse error:', e);
+      console.error('Recommendation parse error:', e, 'Raw:', recResult.text);
+    }
+
+    // Parse overall factors and actions
+    let overallFactors: string[] = [];
+    let overallActions: string[] = [];
+    try {
+      const parsed = JSON.parse(extractJson(factorsResult.text));
+      if (Array.isArray(parsed.factors)) overallFactors = parsed.factors;
+      if (Array.isArray(parsed.actions)) overallActions = parsed.actions;
+    } catch (e) {
+      console.error('Factors parse error:', e, 'Raw:', factorsResult.text);
     }
 
     // Build result in frontend's expected format
-    const CATEGORY_COLORS = {
-      Agriculture: '#4ade80',
-      Housing: '#60a5fa',
-      Industry: '#fb923c',
-      Renewables: '#fbbf24',
+    const CATEGORY_COLORS: Record<string, string> = {
+      agriculture: '#4ade80',
+      housing: '#60a5fa',
+      industry: '#fb923c',
+      renewables: '#fbbf24',
     };
 
     const scores = (['agriculture', 'housing', 'industry', 'renewables'] as const).map(cat => ({
-      score: Math.round(rawScores[cat]),
-      label: cat.charAt(0).toUpperCase() + cat.slice(1) as 'Agriculture' | 'Housing' | 'Industry' | 'Renewables',
-      color: CATEGORY_COLORS[cat as keyof typeof CATEGORY_COLORS],
-      summary: `${cat.charAt(0).toUpperCase() + cat.slice(1)} suitability: ${Math.round(rawScores[cat])}/100`,
-      explanation: explanations[cat] || `Score based on temperature ${weather.temperature}°C, AQI ${airQuality.aqi}, and local conditions.`,
-      actions: recommendations.slice(0, 2),
-      keyFactors: [
-        `Temperature: ${weather.temperature}°C`,
-        `Air Quality: ${airQuality.aqi} AQI`,
-        cat === 'renewables' ? `UV: ${weather.uvIndex}, Wind: ${weather.windSpeed}km/h` : `Elevation: ${geo.elevation}m`,
-      ],
+      score: rawScores[cat],
+      label: (cat.charAt(0).toUpperCase() + cat.slice(1)) as 'Agriculture' | 'Housing' | 'Industry' | 'Renewables',
+      color: CATEGORY_COLORS[cat],
+      summary: `${cat.charAt(0).toUpperCase() + cat.slice(1)} suitability: ${rawScores[cat]}/100`,
+      explanation: explanations[cat] || `Score based on ${weather.temperature}°C temp, ${airQuality.aqi} AQI, ${geo.elevation}m elevation.`,
     }));
 
     const topScore = scores.reduce((a, b) => a.score > b.score ? a : b);
@@ -185,9 +262,15 @@ Return: {"recommendations":["rec1","rec2","rec3"]}`,
         region: location.region || '',
       },
       scores,
+      overallFactors: overallFactors.length > 0 ? overallFactors : [
+        `Temperature: ${weather.temperature}°C`,
+        `Air Quality: ${airQuality.aqi} AQI`,
+        `Elevation: ${geo.elevation}m`,
+      ],
+      overallActions: overallActions.length > 0 ? overallActions : recommendations.slice(0, 3),
       overallInsight: isVeryExtreme
-        ? `This location has extreme environmental conditions (${weather.temperature}°C). All development would require specialized infrastructure and significant investment. Not recommended for standard use.`
-        : `Best suited for ${topScore.label.toLowerCase()} with a score of ${topScore.score}/100. ${scores.find(s => s.label === topScore.label)?.explanation || ''}`,
+        ? `This location has extreme conditions (${weather.temperature}°C). All development requires specialized infrastructure. Not recommended for standard use.`
+        : `Best suited for ${topScore.label.toLowerCase()} with a score of ${topScore.score}/100. ${explanations[topScore.label.toLowerCase()] || ''}`,
       topUse: topScore.label as 'Agriculture' | 'Housing' | 'Industry' | 'Renewables',
       disclaimer: 'AI-assisted insights only. Not a substitute for professional surveys or local regulations.',
       generatedAt: new Date().toISOString(),
@@ -209,7 +292,7 @@ Return: {"recommendations":["rec1","rec2","rec3"]}`,
       meta: {
         durationMs: Date.now() - startTime,
         dataSource: 'live',
-        model:  'llama-3.3-70b-versatile',
+        model: 'llama-3.3-70b-versatile',
       },
     });
   } catch (error) {
