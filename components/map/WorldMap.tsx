@@ -151,46 +151,6 @@ export function WorldMap({
             )}
           </Marker>
         )}
-
-        {/* Loading overlay */}
-        {isLoading && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(10,10,10,0.8)',
-            backdropFilter: 'blur(2px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10,
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '14px 24px',
-              background: 'var(--z-bg-raised)',
-              border: '1px solid var(--z-border-subtle)',
-              borderRadius: 'var(--z-radius-lg)',
-            }}>
-              <div style={{
-                width: 16,
-                height: 16,
-                border: '2px solid var(--z-border-subtle)',
-                borderTopColor: 'var(--z-green-400)',
-                borderRadius: '50%',
-                animation: 'z-spin 0.8s linear infinite',
-              }} />
-              <span style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--z-green-400)',
-              }}>
-                {phase === 'loading_data' ? 'Fetching data...' : 'Analysing...'}
-              </span>
-            </div>
-          </div>
-        )}
       </GoogleMap>
     </LoadScript>
   );

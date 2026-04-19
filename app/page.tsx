@@ -417,8 +417,9 @@ export default function App() {
         )}
 
         {currentPage === 'analyze' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', height: '100%' }}>
-            <div style={{ position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* Map takes full screen */}
+            <div style={{ width: '100%', height: '100%', position: 'relative' }}>
               <WorldMap
                 onLocationSelect={handleLocationSelect}
                 selectedLat={selectedLocation?.latLng.lat}
@@ -426,61 +427,105 @@ export default function App() {
                 phase={analyzePhase}
               />
             </div>
-            <div style={{
-              borderLeft: '1px solid var(--z-border-subtle)',
-              background: 'var(--z-bg-surface)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}>
-              {selectedLocation && (
+
+            {/* Modal popup when results are ready or loading */}
+            {(analyzePhase === 'success' || analyzePhase === 'loading_data' || analyzePhase === 'loading_ai' || analyzePhase === 'error') && (
+              <>
+                {/* Blurred backdrop */}
+                <div
+                  onClick={() => {
+                    setAnalyzePhase('idle');
+                    setCurrentResult(null);
+                    setEnvPayload(null);
+                  }}
+                  style={{
+                    position: 'absolute', inset: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(6px)',
+                    zIndex: 100,
+                  }}
+                />
+
+                {/* Modal box */}
                 <div style={{
-                  padding: '16px 20px',
-                  borderBottom: '1px solid var(--z-border-subtle)',
-                  flexShrink: 0,
-                  background: 'var(--z-bg-raised)',
+                  position: 'absolute',
+                  top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '90%', maxWidth: 480,
+                  maxHeight: '85vh',
+                  background: 'var(--z-bg-surface)',
+                  border: '1px solid var(--z-border-subtle)',
+                  borderRadius: 16,
+                  zIndex: 101,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
                 }}>
+                  {/* Modal header */}
                   <div style={{
-                    fontSize: 10,
-                    color: 'var(--z-text-muted)',
-                    fontWeight: 600,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    marginBottom: 6,
+                    padding: '14px 20px',
+                    borderBottom: '1px solid var(--z-border-subtle)',
+                    background: 'var(--z-bg-raised)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexShrink: 0,
                   }}>
-                    Analysing Location
+                    <div>
+                      {selectedLocation && (
+                        <>
+                          <div style={{ fontSize: 10, color: 'var(--z-text-muted)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
+                            Analysing Location
+                          </div>
+                          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--z-text-primary)' }}>
+                            {selectedLocation.placeName}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--z-text-muted)', marginTop: 2 }}>
+                            {selectedLocation.latLng.lat.toFixed(4)}°N · {selectedLocation.latLng.lng.toFixed(4)}°E
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {/* Close button */}
+                    <button
+                      onClick={() => {
+                        setAnalyzePhase('idle');
+                        setCurrentResult(null);
+                        setEnvPayload(null);
+                      }}
+                      style={{
+                        width: 32, height: 32,
+                        borderRadius: 8,
+                        border: '1px solid var(--z-border-subtle)',
+                        background: 'var(--z-bg-card)',
+                        color: 'var(--z-text-muted)',
+                        cursor: 'pointer',
+                        fontSize: 18, lineHeight: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <div style={{
-                    fontWeight: 700,
-                    fontSize: 17,
-                    color: 'var(--z-text-primary)',
-                    letterSpacing: '-0.02em',
-                  }}>
-                    {selectedLocation.placeName}
-                  </div>
-                  <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                    <span style={{ fontSize: 11, color: 'var(--z-text-muted)' }}>
-                      {selectedLocation.country}
-                    </span>
-                    <span style={{ fontSize: 11, color: 'var(--z-text-muted)' }}>
-                      {selectedLocation.latLng.lat.toFixed(4)}°N · {selectedLocation.latLng.lng.toFixed(4)}°E
-                    </span>
+
+                  {/* Scrollable results */}
+                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                    <ResultsPanel
+                      phase={analyzePhase}
+                      result={currentResult}
+                      envPayload={envPayload}
+                      expandedCategory={expandedCategory}
+                      onToggleCategory={handleToggleCategory}
+                      onDemoClick={handleDemoClick}
+                      error={error}
+                      onRetry={handleRetry}
+                    />
                   </div>
                 </div>
-              )}
-              <div style={{ flex: 1, overflowY: 'auto' }}>
-                <ResultsPanel
-                  phase={analyzePhase}
-                  result={currentResult}
-                  envPayload={envPayload}
-                  expandedCategory={expandedCategory}
-                  onToggleCategory={handleToggleCategory}
-                  onDemoClick={handleDemoClick}
-                  error={error}
-                  onRetry={handleRetry}
-                />
-              </div>
-            </div>
+              </>
+            )}
           </div>
         )}
 
