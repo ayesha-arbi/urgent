@@ -14,11 +14,12 @@ AI-powered land suitability scoring for Agriculture, Housing, Industry, and Rene
 
 - **Framework**: Next.js 15 (App Router)
 - **AI**: Vercel AI SDK with Google Gemini (free tier)
-- **Maps**: React-Leaflet + OpenStreetMap
+- **Maps**: Google Maps via @react-google-maps/api
 - **Data Sources**:
-  - Open-Meteo (weather, air quality)
-  - Nominatim/OSM (geocoding)
-  - Open-Elevation (elevation)
+  - Open-Meteo (weather, air quality) - free, no API key
+  - Nominatim/OSM (geocoding) - free, no API key
+  - Open-Elevation (elevation) - free, no API key
+  - Google Gemini (AI analysis) - free tier available
 
 ## Getting Started
 
@@ -30,11 +31,17 @@ npm install
 
 ### 2. Set up environment variables
 
-Copy `.env.example` to `.env.local` and add your API key:
+Copy `.env.example` to `.env.local`:
 
 ```bash
-# Get free key from https://aistudio.google.com/apikey
-GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
+# AI - Google Gemini (free tier)
+# Get API key: https://aistudio.google.com/apikey
+GOOGLE_GENERATIVE_AI_API_KEY=
+
+# Google Maps for interactive map
+# Get API key: https://console.cloud.google.com/apis/credentials
+# Enable: Maps JavaScript API
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ```
 
 ### 3. Run development server
@@ -49,7 +56,9 @@ Open [http://localhost:3000](http://localhost:3000)
 
 1. Push to GitHub
 2. Import project in [Vercel](https://vercel.com)
-3. Add `GOOGLE_GENERATIVE_AI_API_KEY` to Environment Variables
+3. Add both environment variables:
+   - `GOOGLE_GENERATIVE_AI_API_KEY`
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
 4. Deploy
 
 ## API Endpoints

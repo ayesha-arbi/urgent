@@ -73,7 +73,7 @@ export function WorldMap({
   }
 
   return (
-    <LoadScript googleMapsApiKey={process.env.GOOGLE_GENERATIVE_AI_API_KEY!}>
+    <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={defaultCenter}
