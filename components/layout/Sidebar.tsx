@@ -19,6 +19,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { id: 'landing',   label: 'Home',      Icon: LayoutDashboard }, 
   { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { id: 'analyze', label: 'Analyse Land', Icon: MapPin },
   { id: 'about', label: 'About', Icon: Info },

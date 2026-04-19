@@ -1,10 +1,11 @@
-// ============================================================
-// Main App - Single Page Application with Dashboard/Analyze/About
-// ============================================================
-
 'use client';
 
+// ============================================================
+// page.tsx  (replaces your existing app/page.tsx)
+// ============================================================
+
 import { useState, useEffect, useCallback } from 'react';
+import { LandingPage } from '@/components/landing/LandingPage';   // ← NEW
 import { Sidebar } from '@/components/layout/Sidebar';
 import { WorldMap } from '@/components/map/WorldMap';
 import { ResultsPanel } from '@/components/analyze/ResultsPanel';
@@ -20,6 +21,9 @@ import type {
   SuitabilityResult, EnvPayload, AnalyzePhase,
 } from '@/types';
 
+// ── Add 'landing' to your Page type in @/types if it's a union ──
+// e.g.  export type Page = 'landing' | 'dashboard' | 'analyze' | 'about';
+
 const CATEGORY_ICONS: Record<SuitabilityCategory, React.ElementType> = {
   Agriculture: Sprout,
   Housing: Building2,
@@ -28,7 +32,9 @@ const CATEGORY_ICONS: Record<SuitabilityCategory, React.ElementType> = {
 };
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  // ── Start on 'landing' instead of 'dashboard' ──────────────
+  const [currentPage, setCurrentPage] = useState<Page>('landing');
+
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
   const [analyzePhase, setAnalyzePhase] = useState<AnalyzePhase>('idle');
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -42,7 +48,6 @@ export default function App() {
   const [expandedCategory, setExpandedCategory] = useState<SuitabilityCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load sessions on mount
   useEffect(() => {
     fetch('/api/sessions')
       .then(res => res.json())
@@ -56,11 +61,9 @@ export default function App() {
     setError(null);
 
     try {
-      // Fetch geo data (includes reverse geocoding)
       const geoRes = await fetch(`/api/geo?lat=${latLng.lat}&lng=${latLng.lng}`);
       const geoData = await geoRes.json();
 
-      // Fetch weather and air quality in parallel
       const [weatherRes, airQualityRes] = await Promise.all([
         fetch(`/api/weather?lat=${latLng.lat}&lng=${latLng.lng}`),
         fetch(`/api/airquality?lat=${latLng.lat}&lng=${latLng.lng}`),
@@ -90,7 +93,6 @@ export default function App() {
 
       setAnalyzePhase('loading_ai');
 
-      // Run AI analysis
       const analyzeRes = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,8 +103,6 @@ export default function App() {
 
       if (analyzeData.success) {
         setCurrentResult(analyzeData.data);
-
-        // Add to sessions
         const newSession: AnalysisSession = {
           id: `session_${Date.now()}`,
           location,
@@ -143,9 +143,12 @@ export default function App() {
   };
 
   const handleRetry = () => {
-    if (selectedLocation) {
-      handleLocationSelect(selectedLocation.latLng);
-    }
+    if (selectedLocation) handleLocationSelect(selectedLocation.latLng);
+  };
+
+  // ── Handler: landing page CTA → go to dashboard ────────────
+  const handleEnterApp = () => {
+    setCurrentPage('dashboard');
   };
 
   // Dashboard stats
@@ -170,6 +173,12 @@ export default function App() {
     (Object.keys(sums) as SuitabilityCategory[]).forEach(k => { categoryAvgs[k] = Math.round(sums[k] / sessions.length); });
   }
 
+  // ── RENDER: show landing page before everything else ───────
+  if (currentPage === 'landing') {
+    return <LandingPage onEnterApp={handleEnterApp} />;
+  }
+
+  // ── Everything below is unchanged from your original ───────
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar
@@ -338,12 +347,9 @@ export default function App() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                           <CatIcon size={13} color={color} strokeWidth={2} />
                           <span style={{ fontSize: 12, color: 'var(--z-text-secondary)', flex: 1 }}>{cat}</span>
-                          <span style={{
-                            fontFamily: 'var(--z-font-mono)',
-                            fontWeight: 700,
-                            fontSize: 12,
-                            color,
-                          }}>{avg || '–'}</span>
+                          <span style={{ fontFamily: 'var(--z-font-mono)', fontWeight: 700, fontSize: 12, color }}>
+                            {avg || '–'}
+                          </span>
                         </div>
                         <div style={{ height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{
@@ -358,7 +364,6 @@ export default function App() {
                     );
                   })}
                 </div>
-
                 <div style={{ marginTop: 20, padding: '10px 12px', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)', borderRadius: 'var(--z-radius-md)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
                     <AlertTriangle size={13} color="#fbbf24" style={{ flexShrink: 0, marginTop: 1 }} />
