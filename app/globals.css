@@ -3,53 +3,52 @@
    ============================================================ */
 
 :root {
-  /* Colors */
+  /* Colors - Refined palette */
   --z-green-400: #4ade80;
   --z-green-500: #22c55e;
+  --z-green-600: #16a34a;
   --z-teal-400: #2dd4bf;
+  --z-blue-400: #60a5fa;
+  --z-orange-400: #fb923c;
+  --z-yellow-400: #fbbf24;
 
   /* Backgrounds */
-  --z-bg-surface: #0d1117;
-  --z-bg-raised: #161b22;
-  --z-bg-card: #0d1117;
-  --z-bg-hover: rgba(74, 222, 128, 0.08);
+  --z-bg-base: #0a0a0a;
+  --z-bg-surface: #0f0f0f;
+  --z-bg-raised: #141414;
+  --z-bg-card: #111111;
+  --z-bg-hover: rgba(74,222,128,0.06);
 
   /* Borders */
-  --z-border-subtle: rgba(255, 255, 255, 0.08);
-  --z-border-mild: rgba(74, 222, 128, 0.2);
-  --z-border-accent: rgba(74, 222, 128, 0.35);
+  --z-border-subtle: rgba(255,255,255,0.06);
+  --z-border-mild: rgba(74,222,128,0.15);
+  --z-border-accent: rgba(74,222,128,0.25);
 
   /* Text */
-  --z-text-primary: #f0f6fc;
-  --z-text-secondary: #8b949e;
-  --z-text-muted: #6e7681;
-  --z-text-faint: rgba(255, 255, 255, 0.25);
+  --z-text-primary: #fafafa;
+  --z-text-secondary: #a3a3a3;
+  --z-text-muted: #737373;
+  --z-text-faint: rgba(255,255,255,0.2);
 
   /* Fonts */
-  --z-font-display: 'Inter', system-ui, -apple-system, sans-serif;
-  --z-font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --z-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --z-font-display: system-ui, -apple-system, sans-serif;
+  --z-font-body: system-ui, -apple-system, sans-serif;
+  --z-font-mono: 'SF Mono', 'Fira Code', monospace;
 
   /* Radius */
   --z-radius-sm: 6px;
-  --z-radius-md: 10px;
-  --z-radius-lg: 14px;
-  --z-radius-xl: 18px;
+  --z-radius-md: 8px;
+  --z-radius-lg: 12px;
+  --z-radius-xl: 16px;
   --z-radius-pill: 9999px;
 
   /* Shadows */
-  --z-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --z-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --z-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --z-shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --z-shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --z-shadow-lg: 0 8px 24px rgba(0,0,0,0.6);
 
   /* Layout */
-  --z-sidebar-w: 260px;
-
-  /* Animation */
-  --z-duration-fast: 150ms;
-  --z-duration-base: 250ms;
-  --z-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --z-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --z-sidebar-w: 280px;
 }
 
 * {
@@ -60,7 +59,6 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
 }
 
 body {
@@ -68,7 +66,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   color: var(--z-text-primary);
-  background: var(--z-bg-surface);
+  background: var(--z-bg-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -80,7 +78,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--z-bg-surface);
+  background: var(--z-bg-base);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -107,8 +105,9 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes z-barfill {
-  from { width: 0; }
+@keyframes z-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 @keyframes z-pinpop {
@@ -134,4 +133,16 @@ body {
 
 .leaflet-container {
   font-family: var(--z-font-body);
+}
+
+/* Selection */
+::selection {
+  background: rgba(74,222,128,0.2);
+  color: var(--z-text-primary);
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--z-green-400);
+  outline-offset: 2px;
 }

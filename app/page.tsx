@@ -1,11 +1,7 @@
 'use client';
 
-// ============================================================
-// page.tsx  (replaces your existing app/page.tsx)
-// ============================================================
-
 import { useState, useEffect, useCallback } from 'react';
-import { LandingPage } from '@/components/landing/LandingPage';   // ← NEW
+import { LandingPage } from '@/components/landing/LandingPage';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { WorldMap } from '@/components/map/WorldMap';
 import { ResultsPanel } from '@/components/analyze/ResultsPanel';
@@ -21,9 +17,6 @@ import type {
   SuitabilityResult, EnvPayload, AnalyzePhase,
 } from '@/types';
 
-// ── Add 'landing' to your Page type in @/types if it's a union ──
-// e.g.  export type Page = 'landing' | 'dashboard' | 'analyze' | 'about';
-
 const CATEGORY_ICONS: Record<SuitabilityCategory, React.ElementType> = {
   Agriculture: Sprout,
   Housing: Building2,
@@ -32,9 +25,7 @@ const CATEGORY_ICONS: Record<SuitabilityCategory, React.ElementType> = {
 };
 
 export default function App() {
-  // ── Start on 'landing' instead of 'dashboard' ──────────────
   const [currentPage, setCurrentPage] = useState<Page>('landing');
-
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
   const [analyzePhase, setAnalyzePhase] = useState<AnalyzePhase>('idle');
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -146,12 +137,10 @@ export default function App() {
     if (selectedLocation) handleLocationSelect(selectedLocation.latLng);
   };
 
-  // ── Handler: landing page CTA → go to dashboard ────────────
   const handleEnterApp = () => {
     setCurrentPage('dashboard');
   };
 
-  // Dashboard stats
   const totalAnalyses = sessions.length;
   const avgScore = sessions.length > 0
     ? Math.round(sessions.reduce((acc, s) => acc + s.result.scores.reduce((a, b) => a + b.score, 0) / s.result.scores.length, 0) / sessions.length)
@@ -173,12 +162,10 @@ export default function App() {
     (Object.keys(sums) as SuitabilityCategory[]).forEach(k => { categoryAvgs[k] = Math.round(sums[k] / sessions.length); });
   }
 
-  // ── RENDER: show landing page before everything else ───────
   if (currentPage === 'landing') {
     return <LandingPage onEnterApp={handleEnterApp} />;
   }
 
-  // ── Everything below is unchanged from your original ───────
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar
@@ -188,16 +175,16 @@ export default function App() {
         onSessionClick={handleSessionClick}
       />
 
-      <main style={{ flex: 1, overflow: 'hidden', background: 'var(--z-bg-surface)' }}>
+      <main style={{ flex: 1, overflow: 'hidden', background: 'var(--z-bg-base)' }}>
         {currentPage === 'dashboard' && (
-          <div style={{ padding: '28px', overflowY: 'auto', height: '100%' }}>
+          <div style={{ padding: '24px', overflowY: 'auto', height: '100%' }}>
             {/* Hero */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(74,222,128,0.08) 0%, rgba(45,212,191,0.05) 100%)',
-              border: '1px solid var(--z-border-accent)',
+              background: 'linear-gradient(135deg, rgba(74,222,128,0.06) 0%, rgba(45,212,191,0.04) 100%)',
+              border: '1px solid var(--z-border-subtle)',
               borderRadius: 'var(--z-radius-xl)',
-              padding: '22px 28px',
-              marginBottom: 28,
+              padding: '24px',
+              marginBottom: 24,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -205,16 +192,15 @@ export default function App() {
             }}>
               <div>
                 <div style={{
-                  fontFamily: 'var(--z-font-display)',
                   fontSize: 20,
                   fontWeight: 700,
                   color: 'var(--z-text-primary)',
                   letterSpacing: '-0.02em',
-                  marginBottom: 6,
+                  marginBottom: 8,
                 }}>
                   Point anywhere on Earth.
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--z-text-secondary)', lineHeight: 1.6, maxWidth: 400 }}>
+                <div style={{ fontSize: 14, color: 'var(--z-text-secondary)', lineHeight: 1.5, maxWidth: 450 }}>
                   AI-powered land suitability scoring across Agriculture, Housing, Industry, and Renewables.
                 </div>
               </div>
@@ -222,32 +208,32 @@ export default function App() {
                 onClick={() => setCurrentPage('analyze')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '11px 20px', borderRadius: 'var(--z-radius-lg)',
-                  border: '1px solid rgba(74,222,128,0.4)',
-                  background: 'rgba(74,222,128,0.12)',
+                  padding: '12px 20px', borderRadius: 'var(--z-radius-lg)',
+                  border: '1px solid rgba(74,222,128,0.3)',
+                  background: 'rgba(74,222,128,0.08)',
                   color: 'var(--z-green-400)',
                   cursor: 'pointer',
-                  fontFamily: 'var(--z-font-body)',
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 600,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Zap size={15} />
+                <Zap size={16} />
                 Start Analysing
                 <ArrowRight size={14} />
               </button>
             </div>
 
             {/* Stat Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
-              <StatCard label="Total Analyses" value={totalAnalyses} Icon={LayoutDashboard} accent="#4ade80" sub="Sessions this run" />
-              <StatCard label="Avg Score" value={`${avgScore}/100`} Icon={TrendingUp} accent="#60a5fa" sub="Across all categories" />
-              <StatCard label="Top Category" value={topCategory} Icon={Award} accent="#fbbf24" sub="Most suitable use" />
-              <StatCard label="Locations Covered" value={sessions.length} Icon={Globe} accent="#2dd4bf" sub="Unique coordinates" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+              <StatCard label="Total Analyses" value={totalAnalyses} Icon={LayoutDashboard} accent="#4ade80" sub="This session" />
+              <StatCard label="Avg Score" value={`${avgScore}/100`} Icon={TrendingUp} accent="#60a5fa" sub="All categories" />
+              <StatCard label="Top Category" value={topCategory} Icon={Award} accent="#fbbf24" sub="Most suitable" />
+              <StatCard label="Locations" value={sessions.length} Icon={Globe} accent="#2dd4bf" sub="Unique coords" />
             </div>
 
             {/* Two-column layout */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, marginBottom: 28 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginBottom: 24 }}>
               {/* Recent Analyses */}
               <div style={{
                 background: 'var(--z-bg-card)',
@@ -256,20 +242,20 @@ export default function App() {
                 padding: '20px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <SectionLabel>RECENT ANALYSES</SectionLabel>
+                  <SectionLabel>Recent Analyses</SectionLabel>
                   <button
                     onClick={() => setCurrentPage('analyze')}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      fontSize: 11, color: 'var(--z-green-400)',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 12, color: 'var(--z-green-400)',
                       background: 'none', border: 'none',
-                      cursor: 'pointer', fontFamily: 'var(--z-font-mono)',
+                      cursor: 'pointer', fontWeight: 500,
                     }}
                   >
-                    NEW <ArrowRight size={11} />
+                    NEW <ArrowRight size={12} />
                   </button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {sessions.slice(0, 6).map(session => {
                     const topScore = session.result.scores.reduce((a, b) => a.score > b.score ? a : b);
                     const CatIcon = CATEGORY_ICONS[topScore.label];
@@ -279,19 +265,21 @@ export default function App() {
                         onClick={() => handleSessionClick(session)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '10px 12px', borderRadius: 'var(--z-radius-md)',
+                          padding: '12px', borderRadius: 'var(--z-radius-md)',
                           cursor: 'pointer',
+                          transition: 'background 0.15s ease',
                         }}
                         onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--z-bg-hover)'; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                       >
                         <div style={{
-                          width: 34, height: 34, borderRadius: 10,
-                          background: CATEGORY_COLOR[topScore.label] + '15',
+                          width: 36, height: 36, borderRadius: 10,
+                          background: CATEGORY_COLOR[topScore.label] + '12',
                           border: `1px solid ${CATEGORY_COLOR[topScore.label]}25`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
                         }}>
-                          <CatIcon size={15} color={CATEGORY_COLOR[topScore.label]} strokeWidth={2} />
+                          <CatIcon size={16} color={CATEGORY_COLOR[topScore.label]} strokeWidth={2} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -304,18 +292,17 @@ export default function App() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Badge label={scoreLabel(topScore.score)} color={scoreColor(topScore.score)} />
-                            <span style={{ fontSize: 10, color: 'var(--z-text-faint)' }}>Best: {topScore.label}</span>
+                            <span style={{ fontSize: 10, color: 'var(--z-text-muted)' }}>Best: {topScore.label}</span>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{
-                            fontFamily: 'var(--z-font-display)',
                             fontWeight: 700,
-                            fontSize: 20,
+                            fontSize: 18,
                             color: scoreColor(topScore.score),
                             lineHeight: 1,
                           }}>{topScore.score}</div>
-                          <div style={{ fontSize: 9, color: 'var(--z-text-faint)', fontFamily: 'var(--z-font-mono)', marginTop: 3 }}>
+                          <div style={{ fontSize: 10, color: 'var(--z-text-faint)', marginTop: 2 }}>
                             {formatRelativeTime(session.timestamp)}
                           </div>
                         </div>
@@ -323,8 +310,8 @@ export default function App() {
                     );
                   })}
                   {sessions.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--z-text-muted)', fontSize: 13 }}>
-                      No analyses yet. Start by clicking the map.
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--z-text-muted)', fontSize: 13 }}>
+                      No analyses yet. Click the map to start.
                     </div>
                   )}
                 </div>
@@ -337,7 +324,7 @@ export default function App() {
                 borderRadius: 'var(--z-radius-lg)',
                 padding: '20px',
               }}>
-                <SectionLabel>CATEGORY AVERAGES</SectionLabel>
+                <SectionLabel>Category Averages</SectionLabel>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
                   {(Object.entries(categoryAvgs) as [SuitabilityCategory, number][]).map(([cat, avg]) => {
                     const CatIcon = CATEGORY_ICONS[cat];
@@ -345,29 +332,28 @@ export default function App() {
                     return (
                       <div key={cat}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                          <CatIcon size={13} color={color} strokeWidth={2} />
-                          <span style={{ fontSize: 12, color: 'var(--z-text-secondary)', flex: 1 }}>{cat}</span>
-                          <span style={{ fontFamily: 'var(--z-font-mono)', fontWeight: 700, fontSize: 12, color }}>
+                          <CatIcon size={14} color={color} strokeWidth={2} />
+                          <span style={{ fontSize: 13, color: 'var(--z-text-secondary)', flex: 1 }}>{cat}</span>
+                          <span style={{ fontWeight: 700, fontSize: 13, color }}>
                             {avg || '–'}
                           </span>
                         </div>
-                        <div style={{ height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{
                             height: '100%',
                             width: `${avg}%`,
                             background: color,
                             borderRadius: 3,
-                            boxShadow: `0 0 8px ${color}40`,
                           }} />
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                <div style={{ marginTop: 20, padding: '10px 12px', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)', borderRadius: 'var(--z-radius-md)' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-                    <AlertTriangle size={13} color="#fbbf24" style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span style={{ fontSize: 10, color: 'var(--z-text-muted)', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 18, padding: '12px', background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.1)', borderRadius: 'var(--z-radius-md)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <AlertTriangle size={14} color="#fbbf24" style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span style={{ fontSize: 11, color: 'var(--z-text-secondary)', lineHeight: 1.5 }}>
                       AI-assisted insights only. Not a substitute for professional surveys.
                     </span>
                   </div>
@@ -383,12 +369,12 @@ export default function App() {
               padding: '20px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <SectionLabel>EXPLORE DEMO LOCATIONS</SectionLabel>
-                <span style={{ fontSize: 10, color: 'var(--z-text-faint)', fontFamily: 'var(--z-font-mono)' }}>
+                <SectionLabel>Explore Demo Locations</SectionLabel>
+                <span style={{ fontSize: 11, color: 'var(--z-text-muted)' }}>
                   Click to analyse instantly
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                 {DEMO_LOCATIONS.map(loc => (
                   <button
                     key={loc.name}
@@ -397,13 +383,14 @@ export default function App() {
                       background: 'var(--z-bg-raised)',
                       border: '1px solid var(--z-border-subtle)',
                       borderRadius: 'var(--z-radius-md)',
-                      padding: '12px 14px',
+                      padding: '14px',
                       cursor: 'pointer',
                       textAlign: 'left',
+                      transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={e => {
                       const el = e.currentTarget as HTMLButtonElement;
-                      el.style.borderColor = 'var(--z-border-accent)';
+                      el.style.borderColor = 'var(--z-border-mild)';
                       el.style.background = 'rgba(74,222,128,0.04)';
                     }}
                     onMouseLeave={e => {
@@ -412,14 +399,14 @@ export default function App() {
                       el.style.background = 'var(--z-bg-raised)';
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                      <MapPin size={12} color="var(--z-green-400)" strokeWidth={2} />
-                      <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--z-text-primary)' }}>{loc.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+                      <MapPin size={13} color="var(--z-green-400)" strokeWidth={2} />
+                      <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--z-text-primary)' }}>{loc.name}</span>
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--z-text-muted)', fontFamily: 'var(--z-font-mono)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--z-text-muted)' }}>
                       {loc.country}
                     </div>
-                    <div style={{ fontSize: 9, color: 'var(--z-text-faint)', fontFamily: 'var(--z-font-mono)', marginTop: 3 }}>
+                    <div style={{ fontSize: 10, color: 'var(--z-text-faint)', marginTop: 4 }}>
                       {loc.lat.toFixed(2)}°, {loc.lng.toFixed(2)}°
                     </div>
                   </button>
@@ -430,7 +417,7 @@ export default function App() {
         )}
 
         {currentPage === 'analyze' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', height: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', height: '100%' }}>
             <div style={{ position: 'relative', overflow: 'hidden' }}>
               <WorldMap
                 onLocationSelect={handleLocationSelect}
@@ -448,22 +435,22 @@ export default function App() {
             }}>
               {selectedLocation && (
                 <div style={{
-                  padding: '14px 20px',
+                  padding: '16px 20px',
                   borderBottom: '1px solid var(--z-border-subtle)',
                   flexShrink: 0,
                   background: 'var(--z-bg-raised)',
                 }}>
                   <div style={{
-                    fontFamily: 'var(--z-font-mono)',
-                    fontSize: 9,
-                    color: 'var(--z-text-faint)',
-                    letterSpacing: '0.1em',
-                    marginBottom: 4,
+                    fontSize: 10,
+                    color: 'var(--z-text-muted)',
+                    fontWeight: 600,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: 6,
                   }}>
-                    ANALYSING LOCATION
+                    Analysing Location
                   </div>
                   <div style={{
-                    fontFamily: 'var(--z-font-display)',
                     fontWeight: 700,
                     fontSize: 17,
                     color: 'var(--z-text-primary)',
@@ -471,11 +458,11 @@ export default function App() {
                   }}>
                     {selectedLocation.placeName}
                   </div>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 3 }}>
-                    <span style={{ fontFamily: 'var(--z-font-mono)', fontSize: 10, color: 'var(--z-text-faint)' }}>
+                  <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--z-text-muted)' }}>
                       {selectedLocation.country}
                     </span>
-                    <span style={{ fontFamily: 'var(--z-font-mono)', fontSize: 10, color: 'var(--z-text-faint)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--z-text-muted)' }}>
                       {selectedLocation.latLng.lat.toFixed(4)}°N · {selectedLocation.latLng.lng.toFixed(4)}°E
                     </span>
                   </div>
@@ -498,16 +485,16 @@ export default function App() {
         )}
 
         {currentPage === 'about' && (
-          <div style={{ padding: '40px', maxWidth: 800, overflowY: 'auto', height: '100%' }}>
+          <div style={{ padding: '48px', maxWidth: 760, overflowY: 'auto', height: '100%' }}>
             <div style={{ marginBottom: 32 }}>
               <div style={{
-                fontFamily: 'var(--z-font-display)',
-                fontSize: 28,
-                fontWeight: 700,
+                fontSize: 32,
+                fontWeight: 800,
                 color: 'var(--z-text-primary)',
                 marginBottom: 8,
+                letterSpacing: '-0.02em',
               }}>About Zameendar.ai</div>
-              <div style={{ fontSize: 14, color: 'var(--z-text-secondary)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 15, color: 'var(--z-text-secondary)', lineHeight: 1.6 }}>
                 AI-powered land suitability analysis for informed decision-making.
               </div>
             </div>
@@ -519,10 +506,10 @@ export default function App() {
               padding: '24px',
               marginBottom: 24,
             }}>
-              <div style={{ fontFamily: 'var(--z-font-display)', fontSize: 18, fontWeight: 600, marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>
                 What It Does
               </div>
-              <p style={{ fontSize: 14, color: 'var(--z-text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+              <p style={{ fontSize: 14, color: 'var(--z-text-secondary)', lineHeight: 1.7, marginBottom: 20 }}>
                 Zameendar.ai helps you evaluate any location on Earth for four different land uses:
                 Agriculture, Housing, Industry, and Renewables. Click anywhere on the map and get
                 instant AI-powered suitability scores based on real environmental data.
@@ -535,16 +522,16 @@ export default function App() {
                   { name: 'Renewables', desc: 'Solar and wind energy potential assessment', icon: Sun, color: '#fbbf24' },
                 ].map(item => (
                   <div key={item.name} style={{
-                    padding: '14px',
-                    background: 'rgba(255,255,255,0.02)',
+                    padding: '16px',
+                    background: 'var(--z-bg-raised)',
                     border: '1px solid var(--z-border-subtle)',
                     borderRadius: 'var(--z-radius-md)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <item.icon size={16} color={item.color} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <item.icon size={18} color={item.color} strokeWidth={2} />
                       <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--z-text-primary)' }}>{item.name}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--z-text-muted)', lineHeight: 1.5 }}>{item.desc}</div>
+                    <div style={{ fontSize: 12, color: 'var(--z-text-secondary)', lineHeight: 1.5 }}>{item.desc}</div>
                   </div>
                 ))}
               </div>
@@ -557,10 +544,10 @@ export default function App() {
               padding: '24px',
               marginBottom: 24,
             }}>
-              <div style={{ fontFamily: 'var(--z-font-display)', fontSize: 18, fontWeight: 600, marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>
                 Data Sources
               </div>
-              <ul style={{ fontSize: 13, color: 'var(--z-text-secondary)', lineHeight: 1.8, paddingLeft: 20 }}>
+              <ul style={{ fontSize: 14, color: 'var(--z-text-secondary)', lineHeight: 1.8, paddingLeft: 20 }}>
                 <li><strong style={{ color: 'var(--z-text-primary)' }}>Open-Meteo</strong> — Real-time weather and air quality data</li>
                 <li><strong style={{ color: 'var(--z-text-primary)' }}>Nominatim (OSM)</strong> — Reverse geocoding and location names</li>
                 <li><strong style={{ color: 'var(--z-text-primary)' }}>Open-Elevation</strong> — Elevation data</li>
@@ -569,12 +556,12 @@ export default function App() {
             </div>
 
             <div style={{
-              padding: '16px',
-              background: 'rgba(74,222,128,0.04)',
-              border: '1px solid rgba(74,222,128,0.14)',
+              padding: '18px',
+              background: 'rgba(74,222,128,0.05)',
+              border: '1px solid rgba(74,222,128,0.12)',
               borderRadius: 'var(--z-radius-lg)',
             }}>
-              <div style={{ fontSize: 12, color: 'var(--z-text-secondary)', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 13, color: 'var(--z-text-secondary)', lineHeight: 1.7 }}>
                 <strong style={{ color: 'var(--z-green-400)' }}>Disclaimer:</strong> This tool provides AI-assisted insights for exploratory purposes only.
                 It is not a substitute for professional land surveys, environmental assessments, or compliance with local regulations.
                 Always consult qualified professionals before making land use decisions.
