@@ -5,6 +5,7 @@ import { LandingPage } from '@/components/landing/LandingPage';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { WorldMap } from '@/components/map/WorldMap';
 import { ResultsPanel } from '@/components/analyze/ResultsPanel';
+import { ChatBot } from '@/components/chat/ChatBot';
 import {
   LayoutDashboard, MapPin, Info, Sprout, Building2, Factory, Sun,
   TrendingUp, Award, Globe, Zap, ArrowRight, AlertTriangle,
@@ -615,6 +616,8 @@ export default function App() {
           </div>
         )}
       </main>
+
+      <ChatBot />
     </div>
   );
 }
