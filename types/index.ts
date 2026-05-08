@@ -101,7 +101,7 @@ export interface ApiError {
 }
 
 // Frontend state
-export type Page = 'landing' |'dashboard' | 'analyze' | 'about';
+export type Page = 'landing' |'dashboard' | 'analyze' | 'about' | 'role-select';
 export type AnalyzePhase = 'idle' | 'loading_data' | 'loading_ai' | 'success' | 'error';
 
 export interface AppState {

@@ -1,23 +1,24 @@
-import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic'; // or openai — swap as needed
+import { ROLE_CONFIG } from '@/lib/role-context';
 
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, role } = await req.json();
 
-  const result = streamText({
-    model: google('gemini-2.0-flash'),
+  const config = role && ROLE_CONFIG[role as keyof typeof ROLE_CONFIG];
+
+  const systemPrompt = config
+    ? config.systemPrompt
+    : `You are ZameendarAI, a land intelligence assistant for Pakistan and South Asia. 
+Help users understand land suitability, soil quality, energy potential, and urban planning insights.`;
+
+  const result = await streamText({
+    model: anthropic('claude-3-5-haiku-20241022'), // fast & cheap for chat
+    system: systemPrompt,
     messages,
-    system: `You are ZameendarAI, a helpful assistant for Zameendar.ai - a land suitability analysis platform.
-    You help users understand:
-    - How to use the land analysis tool
-    - What the suitability scores mean (Agriculture, Housing, Industry, Renewables)
-    - How to interpret environmental data (weather, air quality, elevation)
-    - General questions about land assessment and the platform features
-
-    Keep responses concise, friendly, and informative. If asked about topics outside land analysis,
-    politely redirect to the platform's capabilities.`,
+    maxTokens: 600,
   });
 
   return result.toDataStreamResponse();

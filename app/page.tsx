@@ -1,5 +1,6 @@
 'use client';
-
+import { useRole } from '@/lib/role-context';
+import { RoleSelectPage, UserRole } from '@/components/landing/RoleSelectPage';
 import { useState, useEffect, useCallback } from 'react';
 import { LandingPage } from '@/components/landing/LandingPage';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -26,6 +27,8 @@ const CATEGORY_ICONS: Record<SuitabilityCategory, React.ElementType> = {
 };
 
 export default function App() {
+  const { setRole } = useRole();
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
   const [analyzePhase, setAnalyzePhase] = useState<AnalyzePhase>('idle');
@@ -138,10 +141,14 @@ export default function App() {
     if (selectedLocation) handleLocationSelect(selectedLocation.latLng);
   };
 
-  const handleEnterApp = () => {
-    setCurrentPage('dashboard');
-  };
-
+ const handleEnterApp = () => {
+  setCurrentPage('role-select'); // was 'dashboard'
+};
+const handleRoleSelected = (role: UserRole) => {
+  setUserRole(role);
+  setRole(role);          // ← syncs context so ChatBot picks it up
+  setCurrentPage('dashboard');
+};
   const totalAnalyses = sessions.length;
   const avgScore = sessions.length > 0
     ? Math.round(sessions.reduce((acc, s) => acc + s.result.scores.reduce((a, b) => a + b.score, 0) / s.result.scores.length, 0) / sessions.length)
@@ -166,6 +173,9 @@ export default function App() {
   if (currentPage === 'landing') {
     return <LandingPage onEnterApp={handleEnterApp} />;
   }
+  if (currentPage === 'role-select') {
+  return <RoleSelectPage onRoleSelected={handleRoleSelected} />;
+}
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
