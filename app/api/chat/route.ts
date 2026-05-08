@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { streamText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic'; // or openai — swap as needed
 import { ROLE_CONFIG } from '@/lib/role-context';
@@ -23,3 +24,5 @@ Help users understand land suitability, soil quality, energy potential, and urba
 
   return result.toDataStreamResponse();
 }
+=======
+>>>>>>> 5a64f18529755056cdca269a9ccd855181254a2e

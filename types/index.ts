@@ -70,6 +70,12 @@ export interface AnalysisSession {
   id: string;
   location: LocationData;
   result: SuitabilityResult;
+  /**
+   * Snapshot of the env data the model scored against.
+   * Stored so handleSessionClick can restore real values
+   * instead of hardcoded fallbacks.
+   */
+  envPayload: EnvPayload;
   timestamp: string;
 }
 
@@ -82,10 +88,20 @@ export interface AnalyzeRequest {
 
 export interface AnalyzeResponse {
   success: boolean;
-  data: SuitabilityResult;
+  data: SuitabilityResult & {
+    /**
+     * The exact env data used by the model during scoring.
+     * page.tsx must read this for envPayload — never call
+     * /api/weather or /api/airquality separately after /api/analyze.
+     */
+    env: EnvPayload;
+  };
   meta: {
     durationMs: number;
     dataSource: 'live' | 'fallback';
+    webSearch?: string;
+    scoreDiversity?: { spread: number; corrected: boolean };
+    models?: { agent1: string; agent2: string; agent3: string };
   };
 }
 
@@ -101,7 +117,11 @@ export interface ApiError {
 }
 
 // Frontend state
+<<<<<<< HEAD
 export type Page = 'landing' |'dashboard' | 'analyze' | 'about' | 'role-select';
+=======
+export type Page = 'landing' | 'dashboard' | 'analyze' | 'about';
+>>>>>>> 5a64f18529755056cdca269a9ccd855181254a2e
 export type AnalyzePhase = 'idle' | 'loading_data' | 'loading_ai' | 'success' | 'error';
 
 export interface AppState {
@@ -113,21 +133,4 @@ export interface AppState {
   expandedCategory: SuitabilityCategory | null;
   sessions: AnalysisSession[];
   error: string | null;
-}
-
-// Land Story - Shareable Visual Report
-export interface LandStory {
-  location: LocationData;
-  sustainabilityScore: number; // 0-100 overall score
-  scores: CategoryScore[];
-  narrative: string; // 2-3 sentence AI-generated story
-  globalInsights: string[]; // 3-4 bullets tied to global problems
-  recommendations: string[]; // 2-3 actionable recommendations
-  generatedAt: string;
-  shareUrl?: string;
-}
-
-export interface LandStoryResponse {
-  success: boolean;
-  data: LandStory;
 }

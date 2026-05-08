@@ -11,6 +11,31 @@ import type { SuitabilityResult, EnvPayload, SuitabilityCategory, AnalyzePhase }
 import { Pill, Badge, SectionLabel, ScoreRing, Skeleton } from '@/components/shared/ui';
 import { scoreColor, scoreLabel, aqiColor, aqiLabel, CATEGORY_COLOR } from '@/lib/utils';
 
+// ── Sanitise AI explanation text ──────────────────────────────
+// Scoring-prompt constraint language ("HARD CAP", "≤ 5", "mandatory",
+// "non-negotiable", etc.) occasionally leaks into the model's explanation
+// field. Strip those artefacts before displaying them to the user.
+const HARD_CAP_PATTERNS: RegExp[] = [
+  /\bhard\s*caps?\b:?/gi,
+  /\bmandatory\b/gi,
+  /\bnon-negotiable\b/gi,
+  /\benforced\b/gi,
+  /score\s*(must|should)\s+be\s*(≤|<=|<|at\s+most|no\s+(more|higher)\s+than)\s*\d+/gi,
+  /\bcapped\s+at\s+\d+(\s*\/\s*100)?\b/gi,
+  /≤\s*\d+(\s*\/\s*100)?/g,
+  /\(score\s*(limited|capped|restricted)\s+to\s+\d+\)/gi,
+  /\bviolations?\s+will\s+be\s+rejected\b/gi,
+];
+
+function sanitiseExplanation(text: string): string {
+  let out = text;
+  for (const re of HARD_CAP_PATTERNS) {
+    out = out.replace(re, '');
+  }
+  // Collapse multiple spaces left by removals, then trim
+  return out.replace(/[ \t]{2,}/g, ' ').trim();
+}
+
 const CATEGORY_ICONS: Record<SuitabilityCategory, React.ElementType> = {
   Agriculture: Sprout,
   Housing: Building2,
@@ -299,7 +324,7 @@ function ScoreCard({ score, expanded, onToggle }: {
             fontSize: 12, color: 'var(--z-text-secondary)',
             lineHeight: 1.75, margin: '14px 0 16px',
           }}>
-            {score.explanation}
+            {sanitiseExplanation(score.explanation)}
           </p>
         </div>
       )}
@@ -718,7 +743,7 @@ export function ResultsPanel({
           fontSize: 12, color: 'var(--z-text-secondary)',
           lineHeight: 1.75, margin: 0,
         }}>
-          {result.overallInsight}
+          {sanitiseExplanation(result.overallInsight)}
         </p>
       </div>
 
