@@ -14,12 +14,19 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
+import { tavily } from '@tavily/core';
 import { fetchWeather, fetchAirQuality } from '@/lib/services/weatherService';
 import { fetchGeoData, reverseGeocode } from '@/lib/services/geoService';
+import type { EnvPayload } from '@/types';
 
 // ── Gemini client ─────────────────────────────────────────────
 const genai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
+});
+
+// ── Tavily client ────────────────────────────────────────────
+const tvly = tavily({
+  apiKey: process.env.TAVILY_API_KEY!,
 });
 
 // ── Model identifiers ─────────────────────────────────────────
@@ -71,15 +78,6 @@ async function callGemini(model: string, prompt: string): Promise<string> {
 
 // ── Tavily search ─────────────────────────────────────────────
 
-interface TavilyResult {
-  title: string;
-  content: string;
-}
-
-interface TavilyResponse {
-  results: TavilyResult[];
-}
-
 /**
  * Run a single Tavily search and return the top-3 result contents
  * trimmed to maxCharsEach characters each.
@@ -96,27 +94,12 @@ async function tavilySearch(
   }
 
   try {
-    const res = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query,
-        search_depth: 'basic', // 'basic' = 1 credit, faster; 'advanced' = 2 credits, deeper
-        max_results: 3,        // increased from 2 for richer context
-        include_answer: false,
-        include_raw_content: false,
-      }),
-      signal: AbortSignal.timeout(8000),
+    const response = await tvly.search(query, {
+      searchDepth: 'basic',
+      maxResults: 3,
     });
 
-    if (!res.ok) {
-      console.error(`[Tavily] HTTP ${res.status} for query: "${query}"`);
-      return '';
-    }
-
-    const data: TavilyResponse = await res.json();
-    return data.results
+    return response.results
       .map(r => `[${r.title}]\n${trimContent(r.content, maxCharsEach)}`)
       .join('\n\n');
   } catch (err) {
@@ -662,13 +645,27 @@ Return ONLY valid JSON — no markdown fences, no preamble:
       ? `Extreme conditions (${temp}°C) make this location unsuitable for standard development. Specialised infrastructure and strict risk mitigation are required across all use cases.`
       : `Best suited for ${topScore.label.toLowerCase()} with a score of ${topScore.score}/100. ${agent1Data[topCategory].explanation}`;
 
-    const result = {
+    // ── Build the env snapshot returned alongside scores ──────
+    // This is the single source of truth for the UI. page.tsx reads
+    // data.env and never needs to call /api/weather or /api/airquality.
+    const envSnapshot: EnvPayload = {
       location: {
-        latLng   : { lat, lng },
-        placeName: resolvedName,
-        country  : location.country  ?? '',
-        region   : location.region   ?? '',
+        latLng    : { lat, lng },
+        placeName : resolvedName,
+        country   : location.country ?? '',
+        region    : location.region  ?? '',
       },
+      weather,
+      airQuality,
+      geo: {
+        populationDensity: geo.populationDensity,
+        elevation        : geo.elevation,
+        urbanProximity   : geo.urbanProximity,
+      },
+    };
+
+    const result = {
+      location       : envSnapshot.location,
       scores,
       overallFactors : factors,
       overallActions : actions,
@@ -676,14 +673,17 @@ Return ONLY valid JSON — no markdown fences, no preamble:
       topUse         : topScore.label,
       disclaimer     : 'AI-assisted insights only. Not a substitute for professional surveys or local regulations.',
       generatedAt    : new Date().toISOString(),
+      // Returned to client so page.tsx never needs /api/weather or /api/airquality
+      env            : envSnapshot,
     };
 
-    // ── Store session ──
+    // ── Store session (env snapshot included) ─────────────────
     sessions.unshift({
-      id       : `session_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      location : result.location,
+      id        : `session_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      location  : result.location,
       result,
-      timestamp: new Date().toISOString(),
+      envPayload: envSnapshot,   // lets handleSessionClick restore real values
+      timestamp : new Date().toISOString(),
     });
     if (sessions.length > 50) sessions.pop();
 
@@ -712,3 +712,4 @@ Return ONLY valid JSON — no markdown fences, no preamble:
 export async function GET() {
   return NextResponse.json({ sessions, total: sessions.length });
 }
+    

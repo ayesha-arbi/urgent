@@ -14,6 +14,7 @@
     "@ai-sdk/react": "^3.0.170",
     "@google/genai": "^2.0.0",
     "@react-google-maps/api": "^2.20.8",
+    "@tavily/core": "^0.7.3",
     "ai": "^6.0.168",
     "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",

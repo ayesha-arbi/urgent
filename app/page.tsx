@@ -15,7 +15,7 @@ import { scoreColor, scoreLabel, formatRelativeTime, CATEGORY_COLOR } from '@/li
 import { DEMO_LOCATIONS } from '@/lib/mockData';
 import type {
   Page, AnalysisSession, SuitabilityCategory, LatLng,
-  SuitabilityResult, EnvPayload, AnalyzePhase,
+  SuitabilityResult, EnvPayload, AnalyzePhase, SessionsResponse,
 } from '@/types';
 
 const CATEGORY_ICONS: Record<SuitabilityCategory, React.ElementType> = {
@@ -48,58 +48,48 @@ export default function App() {
   }, []);
 
   const handleLocationSelect = useCallback(async (latLng: LatLng, name?: string) => {
-    setSelectedLocation({ latLng, placeName: name || 'Loading...', country: '', region: '' });
+    setSelectedLocation({ latLng, placeName: name || 'Loading…', country: '', region: '' });
     setAnalyzePhase('loading_data');
     setError(null);
 
     try {
-      const geoRes = await fetch(`/api/geo?lat=${latLng.lat}&lng=${latLng.lng}`);
-      const geoData = await geoRes.json();
-
-      const [weatherRes, airQualityRes] = await Promise.all([
-        fetch(`/api/weather?lat=${latLng.lat}&lng=${latLng.lng}`),
-        fetch(`/api/airquality?lat=${latLng.lat}&lng=${latLng.lng}`),
-      ]);
-
-      const weather = await weatherRes.json();
-      const airQuality = await airQualityRes.json();
-
-      const location = {
-        latLng,
-        placeName: name || geoData.placeName || 'Selected Location',
-        country: geoData.country || '',
-        region: geoData.region || '',
-      };
-
-      setSelectedLocation(location);
-      setEnvPayload({
-        location,
-        weather,
-        airQuality,
-        geo: {
-          populationDensity: geoData.populationDensity,
-          elevation: geoData.elevation,
-          urbanProximity: geoData.urbanProximity,
-        },
+      // /api/analyze fetches weather, AQ, and geo internally and returns
+      // data.env — the exact values it scored against. We no longer call
+      // /api/weather or /api/airquality separately, eliminating the race
+      // condition where the UI and the model could see different readings.
+      const analyzeRes = await fetch('/api/analyze', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ lat: latLng.lat, lng: latLng.lng, locationName: name }),
       });
 
+      // Switch loading label to "AI running" while the request is in-flight.
       setAnalyzePhase('loading_ai');
 
-      const analyzeRes = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat: latLng.lat, lng: latLng.lng, locationName: name }),
-      });
-
-      const analyzeData = await analyzeRes.json();
+      const analyzeData: { success: boolean; data: SuitabilityResult & { env: EnvPayload }; error?: string } =
+        await analyzeRes.json();
 
       if (analyzeData.success) {
+        const { env } = analyzeData.data;
+
+        const locationInfo = {
+          latLng,
+          placeName: analyzeData.data.location.placeName,
+          country  : analyzeData.data.location.country,
+          region   : analyzeData.data.location.region,
+        };
+
+        setSelectedLocation(locationInfo);
+        // Single source of truth — same values the model scored against.
+        setEnvPayload(env);
         setCurrentResult(analyzeData.data);
+
         const newSession: AnalysisSession = {
-          id: `session_${Date.now()}`,
-          location,
-          result: analyzeData.data,
-          timestamp: new Date().toISOString(),
+          id        : `session_${Date.now()}`,
+          location  : locationInfo,
+          result    : analyzeData.data,
+          envPayload: env,   // stored so session replay never uses fallbacks
+          timestamp : new Date().toISOString(),
         };
         setSessions(prev => [newSession, ...prev].slice(0, 50));
         setAnalyzePhase('success');
@@ -123,16 +113,19 @@ export default function App() {
 
   const handleSessionClick = (session: AnalysisSession) => {
     setCurrentResult(session.result);
-    setEnvPayload({
-      location: session.location,
-      weather: { temperature: 25, precipitation: 1, windSpeed: 12, humidity: 55, uvIndex: 5, cloudCover: 30 },
-      airQuality: { aqi: 50, pm25: 12, pm10: 25, no2: 10 },
-      geo: { populationDensity: 100, elevation: 200, urbanProximity: 50 },
-    });
+    // session.envPayload is the real env snapshot saved when this analysis ran.
+    setEnvPayload(session.envPayload);
     setSelectedLocation(session.location);
     setAnalyzePhase('success');
     setCurrentPage('analyze');
   };
+
+  useEffect(() => {
+    fetch('/api/sessions')
+      .then(res => res.json())
+      .then((data: SessionsResponse) => setSessions(data.sessions || []))
+      .catch(console.error);
+  }, []);
 
   const handleRetry = () => {
     if (selectedLocation) handleLocationSelect(selectedLocation.latLng);
