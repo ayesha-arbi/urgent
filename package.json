@@ -9,9 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.1.0",
+    "@ai-sdk/google": "^3.0.70",
     "@ai-sdk/groq": "^3.0.35",
     "@ai-sdk/react": "^3.0.170",
+    "@google/genai": "^2.0.0",
     "@react-google-maps/api": "^2.20.8",
     "ai": "^6.0.168",
     "html-to-image": "^1.11.13",
