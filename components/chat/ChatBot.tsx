@@ -16,14 +16,14 @@ let msgCounter = 0;
 const uid = () => `msg-${++msgCounter}-${Date.now()}`;
 
 export function ChatBot({ currentResult }: { currentResult?: any }) {
-  const [isOpen, setIsOpen]       = useState(false);
-  const [input, setInput]         = useState('');
-  const [messages, setMessages]   = useState<ChatMessage[]>([]);
+  const [isOpen, setIsOpen]          = useState(false);
+  const [input, setInput]            = useState('');
+  const [messages, setMessages]      = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const messagesEndRef            = useRef<HTMLDivElement>(null);
-  const inputRef                  = useRef<HTMLInputElement>(null);
-  const abortRef                  = useRef<AbortController | null>(null);
-  const { role }                  = useRole();
+  const messagesEndRef               = useRef<HTMLDivElement>(null);
+  const inputRef                     = useRef<HTMLInputElement>(null);
+  const abortRef                     = useRef<AbortController | null>(null);
+  const { role }                     = useRole();
 
   const config      = role ? ROLE_CONFIG[role] : null;
   const accentColor = config?.accentColor ?? '#4ade80';
@@ -66,9 +66,8 @@ export function ChatBot({ currentResult }: { currentResult?: any }) {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isStreaming) return;
 
-    // Add user message
     const userMsg: ChatMessage = { id: uid(), role: 'user', content: text };
-    const assistantId = uid();
+    const assistantId          = uid();
 
     setMessages(prev => [
       ...prev,
@@ -79,7 +78,7 @@ export function ChatBot({ currentResult }: { currentResult?: any }) {
 
     // Build history for the API (exclude the empty assistant placeholder)
     const history = [...messages, userMsg].map(m => ({
-      role: m.role,
+      role   : m.role,
       content: m.content,
     }));
 
@@ -93,9 +92,9 @@ export function ChatBot({ currentResult }: { currentResult?: any }) {
         body   : JSON.stringify({
           messages: history,
           role,
-          context: currentResult
+          context : currentResult,
         }),
-        signal : controller.signal,
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -103,47 +102,37 @@ export function ChatBot({ currentResult }: { currentResult?: any }) {
         throw new Error(errText);
       }
 
-      const reader  = res.body.getReader();
-      const decoder = new TextDecoder();
+      const reader    = res.body.getReader();
+      const decoder   = new TextDecoder();
       let accumulated = '';
 
-      // Read the stream chunk by chunk and accumulate text
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
 
-        // Handle both plain text stream and AI SDK data stream formats:
-        // Plain text: chunk is raw text
-        // AI SDK data stream: lines prefixed with "0:" contain JSON-encoded text
         for (const line of chunk.split('\n')) {
           if (line.startsWith('0:')) {
-            // AI SDK data stream format: 0:"text chunk"
             try {
               const parsed = JSON.parse(line.slice(2));
               if (typeof parsed === 'string') accumulated += parsed;
             } catch {
-              // not JSON — treat as raw
               accumulated += line.slice(2);
             }
           } else if (
-            line.startsWith('d:') ||  // AI SDK finish marker
-            line.startsWith('e:') ||  // AI SDK error marker
+            line.startsWith('d:') ||
+            line.startsWith('e:') ||
             line === ''
           ) {
             // skip control lines
           } else if (!line.startsWith('data:')) {
-            // plain text stream — append directly
             accumulated += line;
           }
         }
 
-        // Update the assistant placeholder in real time
         setMessages(prev =>
-          prev.map(m =>
-            m.id === assistantId ? { ...m, content: accumulated } : m
-          )
+          prev.map(m => m.id === assistantId ? { ...m, content: accumulated } : m)
         );
       }
 
@@ -170,7 +159,7 @@ export function ChatBot({ currentResult }: { currentResult?: any }) {
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [messages, role, isStreaming]);
+  }, [messages, role, isStreaming, currentResult]);
 
   // ── Submit handler ────────────────────────────────────────
   const onSubmit = (e: React.FormEvent) => {
@@ -183,6 +172,42 @@ export function ChatBot({ currentResult }: { currentResult?: any }) {
 
   return (
     <>
+      {/* ── Scoped markdown styles for assistant bubbles only ── */}
+      <style>{`
+        .z-chat-md p            { margin: 0 0 6px 0; }
+        .z-chat-md p:last-child { margin-bottom: 0; }
+        .z-chat-md ul,
+        .z-chat-md ol           { margin: 4px 0 6px 16px; padding: 0; }
+        .z-chat-md li           { margin-bottom: 2px; }
+        .z-chat-md strong       { font-weight: 700; }
+        .z-chat-md em           { font-style: italic; }
+        .z-chat-md code         {
+          font-family: 'SF Mono', 'Fira Code', monospace;
+          font-size: 12px;
+          background: rgba(255,255,255,0.1);
+          padding: 1px 4px;
+          border-radius: 3px;
+        }
+        .z-chat-md pre          {
+          background: rgba(0,0,0,0.3);
+          padding: 8px;
+          border-radius: 6px;
+          overflow-x: auto;
+          margin: 6px 0;
+        }
+        .z-chat-md pre code     { background: none; padding: 0; }
+        .z-chat-md h1,
+        .z-chat-md h2,
+        .z-chat-md h3           { font-weight: 700; margin: 8px 0 4px; font-size: 13px; }
+        .z-chat-md a            { color: #4ade80; text-decoration: underline; }
+        .z-chat-md blockquote   {
+          border-left: 2px solid rgba(255,255,255,0.2);
+          margin: 4px 0;
+          padding-left: 8px;
+          opacity: 0.8;
+        }
+      `}</style>
+
       {/* FAB */}
       <button
         onClick={isOpen ? () => setIsOpen(false) : handleOpen}
@@ -272,13 +297,22 @@ export function ChatBot({ currentResult }: { currentResult?: any }) {
                   color: msg.role === 'user' ? '#000' : 'var(--z-text-primary)',
                   borderBottomRightRadius: msg.role === 'user' ? 4  : 14,
                   borderBottomLeftRadius:  msg.role === 'user' ? 14 : 4,
-                  // show blinking cursor while streaming this message
                   borderRight: (isStreaming && msg.role === 'assistant' && msg.content !== '')
                     ? `2px solid ${accentColor}`
                     : 'none',
                 }}>
-                  {msg.content || (
-                    // empty assistant bubble while waiting for first chunk
+                  {msg.content ? (
+                    msg.role === 'assistant' ? (
+                      // ── ReactMarkdown for assistant messages only ──
+                      <div className="z-chat-md">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      // ── Plain text for user messages ──
+                      msg.content
+                    )
+                  ) : (
+                    // ── Spinner while waiting for first chunk ──
                     <Loader2 size={14} style={{ animation: 'z-spin 1s linear infinite' }} />
                   )}
                 </div>
