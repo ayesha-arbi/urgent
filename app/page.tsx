@@ -620,7 +620,7 @@ const handleRoleSelected = (role: UserRole) => {
         )}
       </main>
 
-      <ChatBot />
+      <ChatBot currentResult={currentResult} />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { useRole, ROLE_CONFIG } from '@/lib/role-context';
+import ReactMarkdown from 'react-markdown';
 
 // ── Types ─────────────────────────────────────────────────────
 interface ChatMessage {
@@ -14,7 +15,7 @@ interface ChatMessage {
 let msgCounter = 0;
 const uid = () => `msg-${++msgCounter}-${Date.now()}`;
 
-export function ChatBot() {
+export function ChatBot({ currentResult }: { currentResult?: any }) {
   const [isOpen, setIsOpen]       = useState(false);
   const [input, setInput]         = useState('');
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
@@ -89,7 +90,11 @@ export function ChatBot() {
       const res = await fetch('/api/chat', {
         method : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body   : JSON.stringify({ messages: history, role }),
+        body   : JSON.stringify({
+          messages: history,
+          role,
+          context: currentResult
+        }),
         signal : controller.signal,
       });
 

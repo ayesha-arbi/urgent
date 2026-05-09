@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const messages: SimpleMessage[] = body.messages ?? [];
     const role = body.role as UserRole | undefined;
+    const context = body.context;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -41,10 +42,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const systemPrompt =
+    let systemPrompt =
       role && ROLE_CONFIG[role]
         ? ROLE_CONFIG[role].systemPrompt
         : DEFAULT_SYSTEM_PROMPT;
+
+    // Inject Analysis Context if available
+    if (context) {
+      const contextString = `
+SITUATION CONTEXT:
+The user is currently analyzing a location: ${context.location?.placeName || 'Unknown'} (${context.location?.country || 'Unknown'}).
+Suitability Scores:
+- Agriculture: ${context.scores?.[0]?.score || 'N/A'}/100
+- Housing: ${context.scores?.[1]?.score || 'N/A'}/100
+- Industry: ${context.scores?.[2]?.score || 'N/A'}/100
+- Renewables: ${context.scores?.[3]?.score || 'N/A'}/100
+
+Key Factors:
+${(context.overallFactors || []).map((f: string, i: number) => `${i + 1}. ${f}`).join('\n')}
+
+Environmental Data:
+- Temp: ${context.env?.weather?.temperature}°C
+- Precipitation: ${context.env?.weather?.precipitation} mm/day
+- Population Density: ${context.env?.geo?.populationDensity} people/km²
+- Urban Proximity: ${context.env?.geo?.urbanProximity}/100
+      `.trim();
+
+      systemPrompt += `\n\nCURRENT ANALYSIS CONTEXT:\n${contextString}\n\nUse this specific data to answer questions about "this location", "the current spot", or "these scores". If the user asks about a different location, ignore this context.`;
+    }
 
     console.log(`[Chat] role=${role ?? 'none'} msgs=${messages.length} model=${MODEL_ID}`);
 
