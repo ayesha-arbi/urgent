@@ -1,28 +1,82 @@
-<<<<<<< HEAD
+// ============================================================
+// Chat API Route — plain text streaming
+//
+// ChatBot.tsx now reads the stream directly with fetch + ReadableStream,
+// so we don't need any AI SDK stream protocol format.
+// toTextStreamResponse() emits raw text chunks — exactly what we read.
+// ============================================================
+
 import { streamText } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic'; // or openai — swap as needed
-import { ROLE_CONFIG } from '@/lib/role-context';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { NextRequest } from 'next/server';
+import { ROLE_CONFIG, UserRole } from '@/lib/role-context';
 
-export const runtime = 'edge';
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
+});
 
-export async function POST(req: Request) {
-  const { messages, role } = await req.json();
+const MODEL_ID = 'gemini-2.5-flash';
 
-  const config = role && ROLE_CONFIG[role as keyof typeof ROLE_CONFIG];
+const DEFAULT_SYSTEM_PROMPT =
+  'You are ZameendarAI, a general land intelligence assistant. ' +
+  'Provide helpful, accurate, and concise information about land suitability, ' +
+  'geography, climate, agriculture, and sustainable development.';
 
-  const systemPrompt = config
-    ? config.systemPrompt
-    : `You are ZameendarAI, a land intelligence assistant for Pakistan and South Asia. 
-Help users understand land suitability, soil quality, energy potential, and urban planning insights.`;
-
-  const result = await streamText({
-    model: anthropic('claude-3-5-haiku-20241022'), // fast & cheap for chat
-    system: systemPrompt,
-    messages,
-    maxTokens: 600,
-  });
-
-  return result.toDataStreamResponse();
+// Simple message shape sent by ChatBot.tsx
+interface SimpleMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
 }
-=======
->>>>>>> 5a64f18529755056cdca269a9ccd855181254a2e
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const messages: SimpleMessage[] = body.messages ?? [];
+    const role = body.role as UserRole | undefined;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or empty messages' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const systemPrompt =
+      role && ROLE_CONFIG[role]
+        ? ROLE_CONFIG[role].systemPrompt
+        : DEFAULT_SYSTEM_PROMPT;
+
+    console.log(`[Chat] role=${role ?? 'none'} msgs=${messages.length} model=${MODEL_ID}`);
+
+    // streamText accepts plain {role, content} messages directly
+    const result = streamText({
+      model : google(MODEL_ID),
+      system: systemPrompt,
+      messages: messages.map(m => ({
+        role   : m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+      temperature    : 0.7,
+      maxOutputTokens: 1024,
+    });
+
+    // toTextStreamResponse() returns raw streamed text — no protocol wrapping.
+    // ChatBot.tsx reads chunks directly and accumulates them into the message.
+    return result.toTextStreamResponse();
+
+  } catch (error: any) {
+    console.error('[Chat API] Error:', error);
+
+    if (error?.status === 429 || error?.message?.includes('429')) {
+      return new Response(
+        JSON.stringify({ error: 'AI is currently busy. Please wait a few seconds.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ error: 'Chat failed. Please try again.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}

@@ -63,17 +63,27 @@ function trimContent(content: string, maxChars = 500): string {
 /**
  * Call a Gemini model and return the text response.
  * Uses 4096 output tokens to prevent JSON truncation on verbose responses.
+ * Implements exponential backoff for 429 (Rate Limit) errors.
  */
-async function callGemini(model: string, prompt: string): Promise<string> {
-  const response = await genai.models.generateContent({
-    model,
-    contents: prompt,
-    config: {
-      temperature: 0.1,      // low = deterministic, consistent JSON output
-      maxOutputTokens: 4096, // high enough to never truncate full JSON
-    },
-  });
-  return response.text ?? '';
+async function callGemini(model: string, prompt: string, retries = 3, delay = 2000): Promise<string> {
+  try {
+    const response = await genai.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        temperature: 0.1,      // low = deterministic, consistent JSON output
+        maxOutputTokens: 4096, // high enough to never truncate full JSON
+      },
+    });
+    return response.text ?? '';
+  } catch (err: any) {
+    if (err.status === 429 && retries > 0) {
+      console.warn(`[Gemini] Rate limit hit. Retrying in ${delay}ms... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return callGemini(model, prompt, retries - 1, delay * 2);
+    }
+    throw err;
+  }
 }
 
 // ── Tavily search ─────────────────────────────────────────────

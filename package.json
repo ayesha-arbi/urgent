@@ -9,13 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.70",
+    "@ai-sdk/google": "^3.0.71",
     "@ai-sdk/groq": "^3.0.35",
-    "@ai-sdk/react": "^3.0.170",
+    "@ai-sdk/react": "^3.0.179",
     "@google/genai": "^2.0.0",
     "@react-google-maps/api": "^2.20.8",
     "@tavily/core": "^0.7.3",
-    "ai": "^6.0.168",
+    "ai": "^6.0.177",
     "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",

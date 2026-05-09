@@ -1,26 +1,44 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
-import { useChat } from '@ai-sdk/react';
 import { useRole, ROLE_CONFIG } from '@/lib/role-context';
 
-export function ChatBot() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { role } = useRole();
+// ── Types ─────────────────────────────────────────────────────
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
 
-  const config = role ? ROLE_CONFIG[role] : null;
+let msgCounter = 0;
+const uid = () => `msg-${++msgCounter}-${Date.now()}`;
+
+export function ChatBot() {
+  const [isOpen, setIsOpen]       = useState(false);
+  const [input, setInput]         = useState('');
+  const [messages, setMessages]   = useState<ChatMessage[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const messagesEndRef            = useRef<HTMLDivElement>(null);
+  const inputRef                  = useRef<HTMLInputElement>(null);
+  const abortRef                  = useRef<AbortController | null>(null);
+  const { role }                  = useRole();
+
+  const config      = role ? ROLE_CONFIG[role] : null;
   const accentColor = config?.accentColor ?? '#4ade80';
 
-  const { messages, append, isLoading, setMessages } = useChat({
-    api: '/api/chat',
-    // send role to the API route on every request
-    body: { role },
-  });
+  // ── Welcome message ───────────────────────────────────────
+  const welcomeText =
+    config?.chatWelcome ??
+    "Hello! I'm ZameendarAI. Ask me anything about land suitability or how to use the platform.";
 
+  const makeWelcome = useCallback((): ChatMessage => ({
+    id     : uid(),
+    role   : 'assistant',
+    content: welcomeText,
+  }), [welcomeText]);
+
+  // ── Effects ───────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -29,47 +47,156 @@ export function ChatBot() {
     if (isOpen && inputRef.current) inputRef.current.focus();
   }, [isOpen]);
 
-  // Reset + re-greet whenever role changes
+  // Re-greet when role changes while panel is open
   useEffect(() => {
     if (!isOpen) return;
-    const welcome = config?.chatWelcome
-      ?? "Hello! I'm ZameendarAI. Ask me anything about land suitability or how to use the platform.";
-    setMessages([{ id: 'welcome', role: 'assistant', content: welcome }]);
+    abortRef.current?.abort();
+    setIsStreaming(false);
+    setMessages([makeWelcome()]);
   }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Open handler ──────────────────────────────────────────
   const handleOpen = () => {
     setIsOpen(true);
-    if (messages.length === 0) {
-      const welcome = config?.chatWelcome
-        ?? "Hello! I'm ZameendarAI. Ask me anything about land suitability or how to use the platform.";
-      setMessages([{ id: 'welcome', role: 'assistant', content: welcome }]);
-    }
+    if (messages.length === 0) setMessages([makeWelcome()]);
   };
 
+  // ── Send message with manual streaming ───────────────────
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || isStreaming) return;
+
+    // Add user message
+    const userMsg: ChatMessage = { id: uid(), role: 'user', content: text };
+    const assistantId = uid();
+
+    setMessages(prev => [
+      ...prev,
+      userMsg,
+      { id: assistantId, role: 'assistant', content: '' },
+    ]);
+    setIsStreaming(true);
+
+    // Build history for the API (exclude the empty assistant placeholder)
+    const history = [...messages, userMsg].map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const res = await fetch('/api/chat', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ messages: history, role }),
+        signal : controller.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        const errText = await res.text().catch(() => 'Unknown error');
+        throw new Error(errText);
+      }
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      // Read the stream chunk by chunk and accumulate text
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        // Handle both plain text stream and AI SDK data stream formats:
+        // Plain text: chunk is raw text
+        // AI SDK data stream: lines prefixed with "0:" contain JSON-encoded text
+        for (const line of chunk.split('\n')) {
+          if (line.startsWith('0:')) {
+            // AI SDK data stream format: 0:"text chunk"
+            try {
+              const parsed = JSON.parse(line.slice(2));
+              if (typeof parsed === 'string') accumulated += parsed;
+            } catch {
+              // not JSON — treat as raw
+              accumulated += line.slice(2);
+            }
+          } else if (
+            line.startsWith('d:') ||  // AI SDK finish marker
+            line.startsWith('e:') ||  // AI SDK error marker
+            line === ''
+          ) {
+            // skip control lines
+          } else if (!line.startsWith('data:')) {
+            // plain text stream — append directly
+            accumulated += line;
+          }
+        }
+
+        // Update the assistant placeholder in real time
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === assistantId ? { ...m, content: accumulated } : m
+          )
+        );
+      }
+
+      // Final flush for any trailing content
+      const trailing = decoder.decode();
+      if (trailing) accumulated += trailing;
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId ? { ...m, content: accumulated || '...' } : m
+        )
+      );
+
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      console.error('[ChatBot] Stream error:', err);
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId
+            ? { ...m, content: 'Sorry, something went wrong. Please try again.' }
+            : m
+        )
+      );
+    } finally {
+      setIsStreaming(false);
+      abortRef.current = null;
+    }
+  }, [messages, role, isStreaming]);
+
+  // ── Submit handler ────────────────────────────────────────
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    append({ role: 'user', content: input });
+    const trimmed = input.trim();
+    if (!trimmed) return;
     setInput('');
+    sendMessage(trimmed);
   };
 
   return (
     <>
+      {/* FAB */}
       <button
         onClick={isOpen ? () => setIsOpen(false) : handleOpen}
         style={{
           position: 'fixed', bottom: 24, right: 24,
           width: 56, height: 56, borderRadius: '50%', border: 'none',
           background: `linear-gradient(135deg, ${accentColor} 0%, #2dd4bf 100%)`,
-          color: '#000', cursor: 'pointer', display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
+          color: '#000', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: `0 4px 16px ${accentColor}66`,
           zIndex: 9999, transition: 'transform 0.2s, box-shadow 0.2s',
         }}
       >
-        {isOpen ? <X size={24} strokeWidth={2.5} /> : <MessageCircle size={24} strokeWidth={2.5} />}
+        {isOpen
+          ? <X size={24} strokeWidth={2.5} />
+          : <MessageCircle size={24} strokeWidth={2.5} />}
       </button>
 
+      {/* Panel */}
       {isOpen && (
         <div style={{
           position: 'fixed', bottom: 92, right: 24,
@@ -80,6 +207,7 @@ export function ChatBot() {
           display: 'flex', flexDirection: 'column',
           zIndex: 9999, overflow: 'hidden',
         }}>
+
           {/* Header */}
           <div style={{
             padding: '14px 16px',
@@ -96,18 +224,23 @@ export function ChatBot() {
                 <MessageCircle size={18} color="#000" strokeWidth={2.5} />
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--z-text-primary)' }}>ZameendarAI</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--z-text-primary)' }}>
+                  ZameendarAI
+                </div>
                 <div style={{ fontSize: 11, color: accentColor }}>
                   {config ? `Mode: ${config.label}` : 'General Assistant'}
                 </div>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} style={{
-              width: 28, height: 28, borderRadius: 6,
-              border: '1px solid var(--z-border-subtle)',
-              background: 'var(--z-bg-card)', color: 'var(--z-text-muted)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+            <button
+              onClick={() => setIsOpen(false)}
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                border: '1px solid var(--z-border-subtle)',
+                background: 'var(--z-bg-card)', color: 'var(--z-text-muted)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
               <X size={16} />
             </button>
           </div>
@@ -117,8 +250,14 @@ export function ChatBot() {
             flex: 1, overflowY: 'auto', padding: 16,
             display: 'flex', flexDirection: 'column', gap: 12,
           }}>
-            {messages.map((msg) => (
-              <div key={msg.id} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+            {messages.map(msg => (
+              <div
+                key={msg.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                }}
+              >
                 <div style={{
                   maxWidth: '80%', padding: '10px 14px', borderRadius: 14,
                   fontSize: 13, lineHeight: 1.5, wordBreak: 'break-word',
@@ -126,39 +265,38 @@ export function ChatBot() {
                     ? `linear-gradient(135deg, ${accentColor} 0%, #2dd4bf 100%)`
                     : 'var(--z-bg-raised)',
                   color: msg.role === 'user' ? '#000' : 'var(--z-text-primary)',
-                  borderBottomRightRadius: msg.role === 'user' ? 4 : 14,
-                  borderBottomLeftRadius: msg.role === 'user' ? 14 : 4,
+                  borderBottomRightRadius: msg.role === 'user' ? 4  : 14,
+                  borderBottomLeftRadius:  msg.role === 'user' ? 14 : 4,
+                  // show blinking cursor while streaming this message
+                  borderRight: (isStreaming && msg.role === 'assistant' && msg.content !== '')
+                    ? `2px solid ${accentColor}`
+                    : 'none',
                 }}>
-                  {msg.content}
+                  {msg.content || (
+                    // empty assistant bubble while waiting for first chunk
+                    <Loader2 size={14} style={{ animation: 'z-spin 1s linear infinite' }} />
+                  )}
                 </div>
               </div>
             ))}
-            {isLoading && (
-              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <div style={{
-                  padding: '10px 14px', borderRadius: 14, background: 'var(--z-bg-raised)',
-                  display: 'flex', alignItems: 'center', gap: 8,
-                }}>
-                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span style={{ fontSize: 13, color: 'var(--z-text-secondary)' }}>Thinking...</span>
-                </div>
-              </div>
-            )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
-          <form onSubmit={onSubmit} style={{
-            padding: 12, borderTop: '1px solid var(--z-border-subtle)',
-            display: 'flex', gap: 8, background: 'var(--z-bg-card)',
-          }}>
+          <form
+            onSubmit={onSubmit}
+            style={{
+              padding: 12, borderTop: '1px solid var(--z-border-subtle)',
+              display: 'flex', gap: 8, background: 'var(--z-bg-card)',
+            }}
+          >
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Ask me anything..."
-              disabled={isLoading}
+              disabled={isStreaming}
               style={{
                 flex: 1, padding: '10px 14px', borderRadius: 10,
                 border: '1px solid var(--z-border-subtle)',
@@ -166,22 +304,24 @@ export function ChatBot() {
                 fontSize: 13, outline: 'none',
               }}
             />
-            <button type="submit" disabled={isLoading || !input.trim()} style={{
-              width: 40, height: 40, borderRadius: 10, border: 'none',
-              background: input.trim() && !isLoading
-                ? `linear-gradient(135deg, ${accentColor} 0%, #2dd4bf 100%)`
-                : 'var(--z-bg-raised)',
-              color: input.trim() && !isLoading ? '#000' : 'var(--z-text-muted)',
-              cursor: input.trim() && !isLoading ? 'pointer' : 'not-allowed',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+            <button
+              type="submit"
+              disabled={isStreaming || !input.trim()}
+              style={{
+                width: 40, height: 40, borderRadius: 10, border: 'none',
+                background: input.trim() && !isStreaming
+                  ? `linear-gradient(135deg, ${accentColor} 0%, #2dd4bf 100%)`
+                  : 'var(--z-bg-raised)',
+                color: input.trim() && !isStreaming ? '#000' : 'var(--z-text-muted)',
+                cursor: input.trim() && !isStreaming ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
               <Send size={18} strokeWidth={2.5} />
             </button>
           </form>
         </div>
       )}
-
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }
