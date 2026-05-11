@@ -57,36 +57,38 @@ export default function App() {
     setError(null);
 
     try {
-      // /api/analyze fetches weather, AQ, and geo internally and returns
-      // data.env — the exact values it scored against. We no longer call
-      // /api/weather or /api/airquality separately, eliminating the race
-      // condition where the UI and the model could see different readings.
+      const startTime = Date.now();
+
+      // 1. Set phase to 'loading_data' and immediately start the AI pipeline timer
+      // so the visualization starts while the fetch is still pending.
+      setAnalyzePhase('loading_ai');
+      setAgentStep(1);
+
+      let currentStep = 1;
+      const stepInterval = setInterval(() => {
+        currentStep++;
+        if (currentStep > 4) {
+          clearInterval(stepInterval);
+        } else {
+          setAgentStep(currentStep);
+        }
+      }, 3000);
+
+      // 2. Fetch data
       const analyzeRes = await fetch('/api/analyze', {
         method : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body   : JSON.stringify({ lat: latLng.lat, lng: latLng.lng, locationName: name }),
       });
 
-      // Switch loading label to "AI running" while the request is in-flight.
-      setAnalyzePhase('loading_ai');
-      setAgentStep(1);
-
-      // Simulate agent pipeline transitions
-      const steps = [
-        { step: 1, label: 'Data Orchestrator', msg: 'Gathering environmental signatures...' },
-        { step: 2, label: 'Suitability Scorer', msg: 'Running multi-category suitability models...' },
-        { step: 3, label: 'Factor Analyst', msg: 'Analyzing key constraints and enablers...' },
-        { step: 4, label: 'Strategy Agent', msg: 'Mapping results to global sustainability goals...' },
-      ];
-
-      let currentStep = 1;
-      const stepInterval = setInterval(() => {
-        currentStep = Math.min(currentStep + 1, 3); // stop at step index 3
-        setAgentStep(currentStep);
-      }, 3000);
-
-       const analyzeData: { success: boolean; data: SuitabilityResult & { env: EnvPayload }; error?: string } =
+      const analyzeData: { success: boolean; data: SuitabilityResult & { env: EnvPayload }; error?: string } =
         await analyzeRes.json();
+
+      // 3. Ensure a minimum duration (6s) so the user actually sees the agent steps
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 6000) {
+        await new Promise(resolve => setTimeout(resolve, 6000 - elapsed));
+      }
 
       clearInterval(stepInterval);
       setAgentStep(4);
