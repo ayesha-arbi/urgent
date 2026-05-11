@@ -42,6 +42,7 @@ export default function App() {
   const [currentResult, setCurrentResult] = useState<SuitabilityResult | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<SuitabilityCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [agentStep, setAgentStep] = useState(0);
 
   useEffect(() => {
     fetch('/api/sessions')
@@ -68,9 +69,28 @@ export default function App() {
 
       // Switch loading label to "AI running" while the request is in-flight.
       setAnalyzePhase('loading_ai');
+      setAgentStep(1);
 
-      const analyzeData: { success: boolean; data: SuitabilityResult & { env: EnvPayload }; error?: string } =
+      // Simulate agent pipeline transitions
+      const steps = [
+        { step: 1, label: 'Data Orchestrator', msg: 'Gathering environmental signatures...' },
+        { step: 2, label: 'Suitability Scorer', msg: 'Running multi-category suitability models...' },
+        { step: 3, label: 'Factor Analyst', msg: 'Analyzing key constraints and enablers...' },
+        { step: 4, label: 'Strategy Agent', msg: 'Mapping results to global sustainability goals...' },
+      ];
+
+      let currentStep = 1;
+      const stepInterval = setInterval(() => {
+        currentStep = Math.min(currentStep + 1, 3); // stop at step index 3
+        setAgentStep(currentStep);
+      }, 3000);
+
+       const analyzeData: { success: boolean; data: SuitabilityResult & { env: EnvPayload }; error?: string } =
         await analyzeRes.json();
+
+      clearInterval(stepInterval);
+      setAgentStep(4);
+      await new Promise(resolve => setTimeout(resolve, 400));
 
       if (analyzeData.success) {
         const { env } = analyzeData.data;
@@ -518,6 +538,7 @@ const handleRoleSelected = (role: UserRole) => {
                   <div style={{ flex: 1, overflowY: 'auto' }}>
                     <ResultsPanel
                       phase={analyzePhase}
+                      agentStep={agentStep}
                       result={currentResult}
                       envPayload={envPayload}
                       expandedCategory={expandedCategory}

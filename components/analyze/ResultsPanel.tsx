@@ -338,107 +338,161 @@ function ScoreCard({ score, expanded, onToggle }: {
 /* ─────────────────────────────────────────────
    LOADING STATE (GROG ADD MAGIC TIMER!)
 ───────────────────────────────────────────── */
-function LoadingState({ phase }: { phase: AnalyzePhase }) {
+
+function LoadingState({ phase, agentStep }: { phase: AnalyzePhase; agentStep: number }) {
   const isData = phase === 'loading_data';
-  
-  // Grog make state for AI thinking!
-  const [agentStep, setAgentStep] = useState(0);
 
   const AI_STEPS = [
-    { label: 'Data Orchestrator', msg: 'Gathering environmental signatures...', icon: '🔍', color: '#60a5fa' },
-    { label: 'Suitability Scorer', msg: 'Running multi-category suitability models...', icon: '⚖️', color: '#fb923c' },
-    { label: 'Factor Analyst', msg: 'Analyzing key constraints and enablers...', icon: '🧬', color: '#a78bfa' },
-    { label: 'Strategy Agent', msg: 'Mapping results to global sustainability goals...', icon: '🎯', color: '#4ade80' },
+    { label: 'Data',      fullLabel: 'Data Orchestrator',  msg: 'Gathering environmental signatures…',          icon: '🔍', color: '#60a5fa' },
+    { label: 'Scorer',    fullLabel: 'Suitability Scorer', msg: 'Running multi-category suitability models…',   icon: '⚖️', color: '#fb923c' },
+    { label: 'Analyst',   fullLabel: 'Factor Analyst',     msg: 'Analysing key constraints and enablers…',      icon: '🧬', color: '#a78bfa' },
+    { label: 'Strategy',  fullLabel: 'Strategy Agent',     msg: 'Mapping results to global sustainability goals…', icon: '🎯', color: '#4ade80' },
   ];
 
-  // Grog magic timer! Start when AI start thinking!
-  useEffect(() => {
-    if (phase === 'loading_ai') {
-      setAgentStep(0);
-      const interval = setInterval(() => {
-        setAgentStep((prev) => {
-          if (prev >= AI_STEPS.length - 1) {
-            clearInterval(interval);
-            return prev; // Stop at last step
-          }
-          return prev + 1;
-        });
-      }, 3000); // Change every 3 seconds
-
-      return () => clearInterval(interval); // Clean up mess!
-    }
-  }, [phase]);
-
-  const currentStep = isData ? null : AI_STEPS[agentStep];
+  // agentStep is 1-based while running (1=first agent active),
+  // 4 means all complete, 0 means not yet started.
+  const allDone    = agentStep >= 4;
+  const activeIdx  = allDone ? 3 : Math.max(0, agentStep - 1); // 0-based index of active step
+  const currentStep = AI_STEPS[activeIdx];
 
   return (
     <div style={{ padding: '24px 20px' }}>
-      
-      {/* status row */}
+
+      {/* ── Status card ────────────────────────────────────────── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 14,
         padding: '16px', marginBottom: 24,
-        background: isData ? 'rgba(96,165,250,0.05)' : `${currentStep?.color}10`,
-        border: `1px solid ${isData ? 'rgba(96,165,250,0.15)' : currentStep?.color + '30'}`,
+        background: isData
+          ? 'rgba(96,165,250,0.05)'
+          : allDone
+          ? 'rgba(74,222,128,0.08)'
+          : `${currentStep.color}10`,
+        border: `1px solid ${
+          isData ? 'rgba(96,165,250,0.2)'
+          : allDone ? 'rgba(74,222,128,0.3)'
+          : currentStep.color + '30'
+        }`,
         borderRadius: 12,
-        transition: 'all 0.5s ease',
+        transition: 'background 0.5s ease, border-color 0.5s ease',
       }}>
-        
-        {/* Shiny circle or Agent Icon */}
+
+        {/* Icon / spinner */}
         <div style={{
           width: 36, height: 36, flexShrink: 0,
-          background: isData ? 'transparent' : `${currentStep?.color}20`,
-          border: isData ? '3px solid rgba(96,165,250,0.2)' : `1px solid ${currentStep?.color}50`,
-          borderTopColor: isData ? '#60a5fa' : '',
           borderRadius: isData ? '50%' : '10px',
-          animation: isData ? 'z-spin 0.8s linear infinite' : 'z-pulse 2s ease-in-out infinite',
+          background: isData
+            ? 'transparent'
+            : allDone ? 'rgba(74,222,128,0.15)' : `${currentStep.color}20`,
+          border: isData
+            ? '3px solid rgba(96,165,250,0.2)'
+            : allDone ? '1px solid rgba(74,222,128,0.4)' : `1px solid ${currentStep.color}50`,
+          borderTopColor: isData ? '#60a5fa' : undefined,
+          animation: isData
+            ? 'z-spin 0.8s linear infinite'
+            : allDone ? 'none' : 'z-pulse 2s ease-in-out infinite',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18,
-          transition: 'all 0.5s ease',
+          fontSize: 18, transition: 'all 0.5s ease',
         }}>
-          {!isData && currentStep?.icon}
+          {!isData && (allDone ? '✓' : currentStep.icon)}
         </div>
 
         <div>
-          <div style={{ 
-            fontSize: 13, fontWeight: 800, 
-            color: isData ? '#60a5fa' : currentStep?.color, 
+          <div style={{
+            fontSize: 13, fontWeight: 800,
+            color: isData ? '#60a5fa' : allDone ? '#4ade80' : currentStep.color,
             marginBottom: 4, fontFamily: "'Syne', sans-serif",
             transition: 'color 0.5s ease',
           }}>
-            {isData ? 'Fetching live data…' : currentStep?.label}
+            {isData
+              ? 'Fetching live data…'
+              : allDone ? 'Analysis complete — preparing results…'
+              : currentStep.fullLabel}
           </div>
-          <div style={{ 
-            fontSize: 11, color: 'var(--z-text-muted)',
-            transition: 'all 0.5s ease',
-          }}>
-            {isData ? 'Weather · Air quality · Elevation' : currentStep?.msg}
+          <div style={{ fontSize: 11, color: 'var(--z-text-muted)', transition: 'all 0.5s ease' }}>
+            {isData
+              ? 'Weather · Air quality · Elevation · Web research'
+              : allDone ? 'All four agents finished'
+              : currentStep.msg}
           </div>
         </div>
       </div>
 
-      {/* AI Stepper Tracker */}
+      {/* ── Agent pipeline tracker ──────────────────────────────── */}
       {!isData && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, padding: '0 10px' }}>
-          {AI_STEPS.map((step, idx) => {
-            const isActive = idx === agentStep;
-            const isPast = idx < agentStep;
-            return (
-              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                <div style={{
-                  width: 12, height: 12, borderRadius: '50%',
-                  background: isActive ? step.color : (isPast ? step.color : 'var(--z-bg-surface)'),
-                  border: `2px solid ${isActive || isPast ? step.color : 'var(--z-border-subtle)'}`,
-                  boxShadow: isActive ? `0 0 10px ${step.color}` : 'none',
-                  transition: 'all 0.4s ease',
-                }} />
-              </div>
-            );
-          })}
+        <div style={{ marginBottom: 24, padding: '0 4px' }}>
+
+          {/* Track + dots row */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+            {/* Background track */}
+            <div style={{
+              position: 'absolute', left: 8, right: 8, top: '50%',
+              height: 2, background: 'var(--z-border-subtle)',
+              transform: 'translateY(-50%)', borderRadius: 1,
+            }} />
+
+            {/* Filled progress track */}
+            <div style={{
+              position: 'absolute', left: 8, top: '50%',
+              height: 2, borderRadius: 1,
+              background: 'linear-gradient(90deg, #60a5fa, #fb923c, #a78bfa, #4ade80)',
+              transform: 'translateY(-50%)',
+              // Each step fills 1/3 of the track (4 dots = 3 gaps)
+              width: allDone
+                ? 'calc(100% - 16px)'
+                : activeIdx === 0 ? '0%'
+                : `calc(${(activeIdx / 3) * 100}% - ${(activeIdx / 3) * 16}px)`,
+              transition: 'width 0.6s cubic-bezier(0.16,1,0.3,1)',
+            }} />
+
+            {/* Step dots */}
+            {AI_STEPS.map((step, idx) => {
+              const isActive = !allDone && idx === activeIdx;
+              const isPast   = allDone || idx < activeIdx;
+              return (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, zIndex: 1 }}>
+                  <div style={{
+                    width: isActive ? 16 : 12,
+                    height: isActive ? 16 : 12,
+                    borderRadius: '50%',
+                    background: isPast || isActive ? step.color : 'var(--z-bg-raised)',
+                    border: `2px solid ${isPast || isActive ? step.color : 'var(--z-border-subtle)'}`,
+                    boxShadow: isActive ? `0 0 12px ${step.color}, 0 0 4px ${step.color}` : 'none',
+                    transition: 'all 0.4s ease',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {isPast && !isActive && (
+                      <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#000', opacity: 0.4 }} />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Labels beneath dots */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+            {AI_STEPS.map((step, idx) => {
+              const isActive = !allDone && idx === activeIdx;
+              const isPast   = allDone || idx < activeIdx;
+              return (
+                <div key={idx} style={{
+                  fontSize: 9, fontWeight: isActive ? 700 : 500,
+                  color: isActive ? step.color : isPast ? `${step.color}80` : 'var(--z-text-faint)',
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  transition: 'color 0.4s ease',
+                  width: 60, textAlign: 'center',
+                  marginLeft: idx === 0 ? -20 : idx === 3 ? -20 : -30,
+                }}>
+                  {step.label}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* skeleton grid */}
+      {/* ── Skeleton content ─────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
         {[0,1,2,3,4,5].map(i => (
           <Skeleton key={i} h="60px" w="100%" delay={`${i * 0.07}s`} />
@@ -592,6 +646,7 @@ function IdleState({ onDemoClick }: { onDemoClick: (name: string, lat: number, l
 ───────────────────────────────────────────── */
 interface ResultsPanelProps {
   phase: AnalyzePhase;
+  agentStep: number;
   result: SuitabilityResult | null;
   envPayload: EnvPayload | null;
   expandedCategory: SuitabilityCategory | null;
@@ -602,14 +657,14 @@ interface ResultsPanelProps {
 }
 
 export function ResultsPanel({
-  phase, result, envPayload, expandedCategory,
+  phase, agentStep, result, envPayload, expandedCategory,
   onToggleCategory, onDemoClick, error, onRetry,
 }: ResultsPanelProps) {
 
   if (phase === 'idle') return <IdleState onDemoClick={onDemoClick} />;
 
   if (phase === 'loading_data' || phase === 'loading_ai') {
-    return <LoadingState phase={phase} />;
+    return <LoadingState phase={phase} agentStep={agentStep} />;
   }
 
   if (phase === 'error') {
