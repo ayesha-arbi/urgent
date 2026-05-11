@@ -293,28 +293,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           background: linear-gradient(90deg, transparent, rgba(74,222,128,0.4), transparent);
         }
 
-        /* Map mockup pulse dots */
-        @keyframes pingDot {
-          0% { transform: scale(1); opacity: 1; }
-          75%, 100% { transform: scale(2.5); opacity: 0; }
-        }
-        .ping-dot::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: 50%;
-          background: inherit;
-          animation: pingDot 1.5s cubic-bezier(0,0,0.2,1) infinite;
-        }
-
-        /* Video placeholder shimmer */
-        .shimmer-bg {
-          background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 75%);
-          background-size: 800px 100%;
-          animation: shimmer 2.4s infinite linear;
-        }
-
-        /* Ticket / score card anim */
+        /* Score bar anim */
         @keyframes scoreReveal {
           0% { width: 0%; }
           100% { width: var(--target-w); }
@@ -325,6 +304,26 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           animation: scoreReveal 1.2s cubic-bezier(0.16,1,0.3,1) forwards;
           animation-delay: 0.6s;
           width: 0%;
+        }
+
+        /* Video play button */
+        .play-btn {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: rgba(74,222,128,0.15);
+          border: 2px solid rgba(74,222,128,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+          backdrop-filter: blur(8px);
+        }
+        .play-btn:hover {
+          background: rgba(74,222,128,0.25);
+          transform: scale(1.08);
+          box-shadow: 0 0 32px rgba(74,222,128,0.3);
         }
       `}</style>
 
@@ -400,7 +399,7 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
           </p>
         </div>
 
-        {/* ── HERO MOCKUP ── */}
+        {/* ── HERO MOCKUP — replaced SVG with image.png ── */}
         <div className="hero-mockup" style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 1040, margin: '64px auto 0' }}>
           {/* outer glow border */}
           <div style={{ position: 'relative', borderRadius: 20, padding: 1, background: 'linear-gradient(135deg, rgba(74,222,128,0.3), rgba(96,165,250,0.2), rgba(167,139,250,0.15))' }}>
@@ -414,81 +413,12 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
                 </div>
               </div>
 
-              {/* APP SCREENSHOT PLACEHOLDER */}
-              {/* Replace the block below with: <img src="/app-screenshot.png" style={{ width:'100%', display:'block' }} /> */}
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#0a0e0d', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 360 }}>
-
-                {/* Map-like grid */}
-                <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(74,222,128,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.04) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 40% 50%, rgba(74,222,128,0.06) 0%, transparent 70%)' }} />
-
-                {/* Fake map regions */}
-                <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 1040 585" preserveAspectRatio="xMidYMid slice">
-                  <path d="M100,120 Q200,80 380,140 Q450,160 480,200 Q520,250 460,310 Q400,360 300,340 Q180,320 120,260 Q70,200 100,120Z" fill="rgba(74,222,128,0.07)" stroke="rgba(74,222,128,0.12)" strokeWidth="1" />
-                  <path d="M480,80 Q580,60 680,100 Q760,130 780,200 Q790,260 740,300 Q680,340 600,320 Q520,300 490,240 Q460,180 480,80Z" fill="rgba(96,165,250,0.06)" stroke="rgba(96,165,250,0.1)" strokeWidth="1" />
-                  <path d="M200,360 Q300,330 420,380 Q500,410 510,470 Q510,520 420,540 Q320,555 230,520 Q150,490 160,430 Q165,390 200,360Z" fill="rgba(251,191,36,0.05)" stroke="rgba(251,191,36,0.08)" strokeWidth="1" />
-                  <path d="M650,330 Q740,300 820,340 Q890,375 880,440 Q870,500 800,520 Q720,535 660,495 Q600,455 620,390 Q630,355 650,330Z" fill="rgba(167,139,250,0.06)" stroke="rgba(167,139,250,0.1)" strokeWidth="1" />
-                  {/* Roads */}
-                  <line x1="0" y1="280" x2="1040" y2="280" stroke="rgba(255,255,255,0.04)" strokeWidth="1.5" />
-                  <line x1="520" y1="0" x2="520" y2="585" stroke="rgba(255,255,255,0.04)" strokeWidth="1.5" />
-                  <line x1="0" y1="140" x2="1040" y2="420" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                </svg>
-
-                {/* Ping markers */}
-                {[
-                  { x: '38%', y: '44%', color: '#4ade80', label: 'Karachi' },
-                  { x: '62%', y: '32%', color: '#60a5fa', label: 'Lahore' },
-                  { x: '55%', y: '62%', color: '#fbbf24', label: 'Hyderabad' },
-                ].map(m => (
-                  <div key={m.label} style={{ position: 'absolute', left: m.x, top: m.y, transform: 'translate(-50%, -50%)' }}>
-                    <div style={{ position: 'relative', width: 12, height: 12 }}>
-                      <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: m.color, opacity: 0.25, animation: 'pingDot 1.5s ease-out infinite' }} />
-                      <div style={{ position: 'absolute', inset: 2, borderRadius: '50%', background: m.color }} />
-                    </div>
-                  </div>
-                ))}
-
-                {/* Score panel — floats on right */}
-                <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', width: 220, background: 'rgba(8,9,10,0.92)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '20px', backdropFilter: 'blur(20px)', animation: 'float 5s ease-in-out infinite' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <MapPin size={14} color="#4ade80" />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#e5e5e5' }}>Sindh Plains</span>
-                  </div>
-                  {[
-                    { label: 'Agriculture', score: 87, color: '#4ade80', Icon: Sprout },
-                    { label: 'Housing', score: 72, color: '#60a5fa', Icon: Building2 },
-                    { label: 'Industry', score: 65, color: '#fb923c', Icon: Factory },
-                    { label: 'Renewables', score: 91, color: '#fbbf24', Icon: Sun },
-                  ].map(s => (
-                    <div key={s.label} style={{ marginBottom: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <s.Icon size={11} color={s.color} />
-                          <span style={{ fontSize: 11, color: '#888' }}>{s.label}</span>
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.score}</span>
-                      </div>
-                      <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                        <div className="score-bar" style={{ ['--target-w' as string]: `${s.score}%`, background: s.color, opacity: 0.8 }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Coordinate tooltip — floats bottom-left */}
-                <div style={{ position: 'absolute', left: 24, bottom: 24, background: 'rgba(8,9,10,0.88)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 14px', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Zap size={13} color="#fbbf24" />
-                  <span style={{ fontSize: 12, color: '#a5a5a5' }}>24.8607° N, 67.0011° E</span>
-                </div>
-
-                {/* REPLACE PLACEHOLDER text */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, position: 'relative', zIndex: 1 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(74,222,128,0.1)', border: '1px dashed rgba(74,222,128,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Globe size={22} color="rgba(74,222,128,0.5)" />
-                  </div>
-                  <span style={{ fontSize: 12, color: '#333', fontWeight: 500 }}>Replace with /app-screenshot.png</span>
-                </div>
-              </div>
+              {/* ── APP SCREENSHOT ── */}
+              <img
+                src="/image.png"
+                alt="Zameendar.ai app screenshot"
+                style={{ width: '100%', display: 'block', maxHeight: 560, objectFit: 'cover' }}
+              />
             </div>
           </div>
 
@@ -501,47 +431,22 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
 
       {/* ══════════ VIDEO SECTION ══════════ */}
       <section style={{ padding: '100px 40px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-            <span className="tag-badge">Demo</span>
-          </div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 16 }}>
-            See it in action
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <span className="tag-badge" style={{ marginBottom: 20, display: 'inline-flex' }}>See it in action</span>
+          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(26px, 3.5vw, 40px)', fontWeight: 800, letterSpacing: '-0.03em' }}>
+            Watch how it works
           </h2>
-          <p style={{ fontSize: 16, color: '#666', maxWidth: 440, margin: '0 auto' }}>
-            Watch how Zameendar.ai turns a map click into a full land intelligence report.
-          </p>
         </div>
 
-        {/* VIDEO PLACEHOLDER — Replace the div below with <video> or <iframe> */}
-        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-          {/* shimmer bg */}
-          <div className="shimmer-bg" style={{ position: 'absolute', inset: 0 }} />
-          {/* scan line */}
-          <div style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, rgba(74,222,128,0.4), transparent)', animation: 'scanLine 2.5s linear infinite', zIndex: 1 }} />
-
-          {/* Play button */}
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s, transform 0.2s', marginBottom: 20, animation: 'float 3.5s ease-in-out infinite' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(74,222,128,0.22)'; (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(74,222,128,0.12)'; (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
-            >
-              <Play size={28} color="#4ade80" style={{ marginLeft: 4 }} />
-            </div>
-            <p style={{ fontSize: 13, color: '#444', fontWeight: 500 }}>
-              {/* Replace me: drop in your <video src="..."> or <iframe> here */}
-              Replace with video · 16:9 · Recommended 1920×1080
-            </p>
-          </div>
-
-          {/* Corner labels */}
-          <div style={{ position: 'absolute', top: 20, left: 20, fontSize: 11, color: '#333', letterSpacing: '0.08em', textTransform: 'uppercase', zIndex: 2 }}>
-            VIDEO_PLACEHOLDER.mp4
-          </div>
-          <div style={{ position: 'absolute', bottom: 20, right: 20, display: 'flex', alignItems: 'center', gap: 6, zIndex: 2 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', animation: 'pulse-ring 2s ease-out infinite' }} />
-            <span style={{ fontSize: 11, color: '#333' }}>2:34</span>
-          </div>
+        <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: '#0e1012' }}>
+          {/* glow border wrapper */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(74,222,128,0.06) 0%, transparent 60%)', pointerEvents: 'none', zIndex: 1 }} />
+          <video
+            src="/video.mp4"
+            controls
+            playsInline
+            style={{ width: '100%', display: 'block', maxHeight: 600, objectFit: 'cover', borderRadius: 20 }}
+          />
         </div>
       </section>
 
@@ -631,22 +536,19 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ══════════ SECONDARY IMAGE / SCREENSHOT ══════════ */}
+      {/* ══════════ SECONDARY IMAGE SECTION ══════════ */}
       <section style={{ padding: '100px 40px', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
-          {/* image placeholder */}
-          <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', aspectRatio: '4/3' }}>
-            {/* REPLACE: <img src="/feature-screenshot.png" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> */}
-            <div className="shimmer-bg" style={{ position: 'absolute', inset: 0 }} />
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, border: '1px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <BarChart3 size={22} color="rgba(255,255,255,0.2)" />
-              </div>
-              <span style={{ fontSize: 12, color: '#2a2a2a' }}>Replace with /feature-screenshot.png</span>
-            </div>
-            {/* decorative corner accent */}
-            <div style={{ position: 'absolute', top: 0, left: 0, width: 80, height: 80, borderTop: '2px solid rgba(74,222,128,0.3)', borderLeft: '2px solid rgba(74,222,128,0.3)', borderRadius: '20px 0 0 0' }} />
-            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 80, height: 80, borderBottom: '2px solid rgba(96,165,250,0.2)', borderRight: '2px solid rgba(96,165,250,0.2)', borderRadius: '0 0 20px 0' }} />
+          {/* ── feature screenshot ── */}
+          <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <img
+              src="/image.png"
+              alt="Zameendar.ai feature view"
+              style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+            />
+            {/* decorative corner accents */}
+            <div style={{ position: 'absolute', top: 0, left: 0, width: 80, height: 80, borderTop: '2px solid rgba(74,222,128,0.3)', borderLeft: '2px solid rgba(74,222,128,0.3)', borderRadius: '20px 0 0 0', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 80, height: 80, borderBottom: '2px solid rgba(96,165,250,0.2)', borderRight: '2px solid rgba(96,165,250,0.2)', borderRadius: '0 0 20px 0', pointerEvents: 'none' }} />
           </div>
 
           <div>
@@ -703,7 +605,6 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
         <Orb style={{ width: 700, height: 400, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'radial-gradient(ellipse, rgba(74,222,128,0.09) 0%, transparent 70%)' }} />
 
         <div className={`reveal ${cta.visible ? 'visible' : ''}`} style={{ position: 'relative', zIndex: 1 }}>
-          {/* CTA card */}
           <div style={{ maxWidth: 640, margin: '0 auto', padding: '60px 48px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 28, position: 'relative', overflow: 'hidden', animation: cta.visible ? 'borderGlow 3s ease-in-out infinite' : 'none' }}>
             {/* top strip */}
             <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '60%', height: 2, background: 'linear-gradient(90deg, transparent, #4ade80, transparent)' }} />
