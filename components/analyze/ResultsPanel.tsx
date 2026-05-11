@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Thermometer, Droplets, Wind, Eye, Sun, Users, Mountain,
   Sprout, Building2, Factory, ChevronDown, ChevronUp,
@@ -335,34 +335,108 @@ function ScoreCard({ score, expanded, onToggle }: {
 /* ─────────────────────────────────────────────
    LOADING STATE
 ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   LOADING STATE (GROG ADD MAGIC TIMER!)
+───────────────────────────────────────────── */
 function LoadingState({ phase }: { phase: AnalyzePhase }) {
   const isData = phase === 'loading_data';
+  
+  // Grog make state for AI thinking!
+  const [agentStep, setAgentStep] = useState(0);
+
+  const AI_STEPS = [
+    { label: 'Data Orchestrator', msg: 'Gathering environmental signatures...', icon: '🔍', color: '#60a5fa' },
+    { label: 'Suitability Scorer', msg: 'Running multi-category suitability models...', icon: '⚖️', color: '#fb923c' },
+    { label: 'Factor Analyst', msg: 'Analyzing key constraints and enablers...', icon: '🧬', color: '#a78bfa' },
+    { label: 'Strategy Agent', msg: 'Mapping results to global sustainability goals...', icon: '🎯', color: '#4ade80' },
+  ];
+
+  // Grog magic timer! Start when AI start thinking!
+  useEffect(() => {
+    if (phase === 'loading_ai') {
+      setAgentStep(0);
+      const interval = setInterval(() => {
+        setAgentStep((prev) => {
+          if (prev >= AI_STEPS.length - 1) {
+            clearInterval(interval);
+            return prev; // Stop at last step
+          }
+          return prev + 1;
+        });
+      }, 3000); // Change every 3 seconds
+
+      return () => clearInterval(interval); // Clean up mess!
+    }
+  }, [phase]);
+
+  const currentStep = isData ? null : AI_STEPS[agentStep];
+
   return (
     <div style={{ padding: '24px 20px' }}>
+      
       {/* status row */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '12px 14px', marginBottom: 24,
-        background: 'rgba(74,222,128,0.05)',
-        border: '1px solid rgba(74,222,128,0.15)',
-        borderRadius: 10,
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '16px', marginBottom: 24,
+        background: isData ? 'rgba(96,165,250,0.05)' : `${currentStep?.color}10`,
+        border: `1px solid ${isData ? 'rgba(96,165,250,0.15)' : currentStep?.color + '30'}`,
+        borderRadius: 12,
+        transition: 'all 0.5s ease',
       }}>
+        
+        {/* Shiny circle or Agent Icon */}
         <div style={{
-          width: 14, height: 14, flexShrink: 0,
-          border: '2px solid rgba(74,222,128,0.2)',
-          borderTopColor: '#4ade80',
-          borderRadius: '50%',
-          animation: 'z-spin 0.8s linear infinite',
-        }} />
+          width: 36, height: 36, flexShrink: 0,
+          background: isData ? 'transparent' : `${currentStep?.color}20`,
+          border: isData ? '3px solid rgba(96,165,250,0.2)' : `1px solid ${currentStep?.color}50`,
+          borderTopColor: isData ? '#60a5fa' : '',
+          borderRadius: isData ? '50%' : '10px',
+          animation: isData ? 'z-spin 0.8s linear infinite' : 'z-pulse 2s ease-in-out infinite',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18,
+          transition: 'all 0.5s ease',
+        }}>
+          {!isData && currentStep?.icon}
+        </div>
+
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', marginBottom: 2 }}>
-            {isData ? 'Fetching live data…' : 'Running AI analysis…'}
+          <div style={{ 
+            fontSize: 13, fontWeight: 800, 
+            color: isData ? '#60a5fa' : currentStep?.color, 
+            marginBottom: 4, fontFamily: "'Syne', sans-serif",
+            transition: 'color 0.5s ease',
+          }}>
+            {isData ? 'Fetching live data…' : currentStep?.label}
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(74,222,128,0.5)' }}>
-            {isData ? 'Weather · Air quality · Elevation' : 'Scoring all four categories'}
+          <div style={{ 
+            fontSize: 11, color: 'var(--z-text-muted)',
+            transition: 'all 0.5s ease',
+          }}>
+            {isData ? 'Weather · Air quality · Elevation' : currentStep?.msg}
           </div>
         </div>
       </div>
+
+      {/* AI Stepper Tracker */}
+      {!isData && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, padding: '0 10px' }}>
+          {AI_STEPS.map((step, idx) => {
+            const isActive = idx === agentStep;
+            const isPast = idx < agentStep;
+            return (
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: isActive ? step.color : (isPast ? step.color : 'var(--z-bg-surface)'),
+                  border: `2px solid ${isActive || isPast ? step.color : 'var(--z-border-subtle)'}`,
+                  boxShadow: isActive ? `0 0 10px ${step.color}` : 'none',
+                  transition: 'all 0.4s ease',
+                }} />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* skeleton grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
