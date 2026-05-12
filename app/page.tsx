@@ -86,8 +86,8 @@ export default function App() {
 
       // 3. Ensure a minimum duration (6s) so the user actually sees the agent steps
       const elapsed = Date.now() - startTime;
-      if (elapsed < 6000) {
-        await new Promise(resolve => setTimeout(resolve, 6000 - elapsed));
+      if (elapsed < 20000) {
+        await new Promise(resolve => setTimeout(resolve, 20000 - elapsed));
       }
 
       clearInterval(stepInterval);

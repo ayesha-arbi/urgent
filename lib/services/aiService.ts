@@ -88,6 +88,8 @@ The scores MUST reflect real-world habitability - Antarctica, Arctic, Sahara cor
       overallInsight: result.object.overallInsight,
       topUse: result.object.topUse,
       disclaimer: result.object.disclaimer || 'AI-assisted insights only. Not a substitute for professional surveys or local regulations.',
+      overallFactors: result.object.scores.flatMap(s => s.keyFactors),
+      overallActions: result.object.scores.flatMap(s => s.actions),
     };
   } catch (error) {
     console.error('AI analysis failed:', error);
@@ -215,5 +217,7 @@ function generateFallbackAnalysis(envData: EnvPayload): Omit<SuitabilityResult, 
     overallInsight: `Best suited for ${topUse.toLowerCase()} with a score of ${scores.find(s => s.label === topUse)?.score}/100. Conditions ${scores.find(s => s.label === topUse)?.score! > 70 ? 'favor' : 'may limit'} this use case.`,
     topUse,
     disclaimer: 'AI-assisted insights only. Not a substitute for professional surveys or local regulations.',
+    overallFactors: scores.flatMap(s => s.keyFactors),
+    overallActions: scores.flatMap(s => s.actions),
   };
 }
