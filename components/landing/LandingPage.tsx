@@ -429,26 +429,6 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
 
       <div className="glow-line" />
 
-      {/* ══════════ VIDEO SECTION ══════════ */}
-      <section style={{ padding: '100px 40px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <span className="tag-badge" style={{ marginBottom: 20, display: 'inline-flex' }}>See it in action</span>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(26px, 3.5vw, 40px)', fontWeight: 800, letterSpacing: '-0.03em' }}>
-            Watch how it works
-          </h2>
-        </div>
-
-        <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: '#0e1012' }}>
-          {/* glow border wrapper */}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(74,222,128,0.06) 0%, transparent 60%)', pointerEvents: 'none', zIndex: 1 }} />
-          <video
-            src="/video.mp4"
-            controls
-            playsInline
-            style={{ width: '100%', display: 'block', maxHeight: 600, objectFit: 'cover', borderRadius: 20 }}
-          />
-        </div>
-      </section>
 
       {/* ══════════ STATS ══════════ */}
       <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '60px 40px', background: 'rgba(255,255,255,0.01)' }}>
